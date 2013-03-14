@@ -137,9 +137,10 @@ else
 	echo "Building from bundled submodule"
 	
 	# Copy Zotero directory
+	cd "$CALLDIR/modules/zotero"
+	REV=`git log -n 1 --pretty='format:%h'`
 	cp -RH "$CALLDIR/modules/zotero" "$BUILDDIR/zotero"
 	cd "$BUILDDIR/zotero"
-	REV=`git log -n 1 --pretty='format:%h'`
 	
 	if [ -z "$VERSION" ]; then
 		VERSION="$DEFAULT_VERSION_PREFIX$REV"
@@ -247,8 +248,11 @@ if [ $BUILD_MAC == 1 ]; then
 	# Merge xulrunner and relevant assets
 	mkdir "$CONTENTSDIR/MacOS"
 	cp -a "$MAC_RUNTIME_PATH/Versions/Current"/* "$CONTENTSDIR/MacOS"
-	# Mozilla no longer builds xulrunner-stub on OS X
-	mv "$CONTENTSDIR/MacOS/xulrunner" "$CONTENTSDIR/MacOS/zotero-bin"
+	# Use xulrunner executable from XULRunner 18 on i386; see https://bugzilla.mozilla.org/show_bug.cgi?id=843428
+	# This should be tested with every XULRunner update to ensure the old executable still works
+	# The thin executable included here was created with lipo xulrunner -thin i386 -output xulrunner-18-i386
+	lipo "$CONTENTSDIR/MacOS/xulrunner" -replace i386 "$CALLDIR/mac/xulrunner-18-i386" -output "$CONTENTSDIR/MacOS/zotero-bin"
+	rm "$CONTENTSDIR/MacOS/xulrunner"
 	cp "$CALLDIR/mac/zotero" "$CONTENTSDIR/MacOS/zotero"
 	# Hack to get the updater to work
 	mv "$CONTENTSDIR/MacOS/updater.app/Contents/MacOS/updater" "$CONTENTSDIR/MacOS/updater.app/Contents/MacOS/updater-bin"
@@ -318,6 +322,7 @@ if [ $BUILD_WIN32 == 1 ]; then
 	cp -R "$BUILDDIR/zotero/"* "$BUILDDIR/application.ini" "$APPDIR"
 	cp -r "$WIN32_RUNTIME_PATH" "$APPDIR/xulrunner"
 	
+	cat "$CALLDIR/win/installer/updater_append.ini" >> "$APPDIR/updater.ini"
 	mv "$APPDIR/xulrunner/xulrunner-stub.exe" "$APPDIR/zotero.exe"
 	
 	# This used to be bug 722810, but that bug was actually fixed for Gecko 12. Now it's
@@ -339,7 +344,7 @@ if [ $BUILD_WIN32 == 1 ]; then
 	
 	# Remove unnecessary dlls
 	rm "$APPDIR/extensions/zoteroWinWordIntegration@zotero.org/components/zoteroWinWordIntegration.dll"
-	rm -rf "$APPDIR/extensions/zoteroWinWordIntegration@zotero.org/"components-!($GECKO_VERSION)
+	rm -rf "$APPDIR/extensions/zoteroWinWordIntegration@zotero.org/"components-!($GECKO_SHORT_VERSION)
 	
 	# Delete extraneous files
 	rm "$APPDIR/xulrunner/js.exe" "$APPDIR/xulrunner/redit.exe"
@@ -361,6 +366,7 @@ if [ $BUILD_WIN32 == 1 ]; then
 			cp -r "$CALLDIR/win/installer" "$BUILDDIR/win_installer"
 			
 			# Build and sign uninstaller
+			perl -pi -e "s/{{VERSION}}/$VERSION/" "$BUILDDIR/win_installer/defines.nsi"
 			"`cygpath -u \"$MAKENSISU\"`" /V1 "`cygpath -w \"$BUILDDIR/win_installer/uninstaller.nsi\"`"
 			mkdir "$APPDIR/uninstall"
 			mv "$BUILDDIR/win_installer/helper.exe" "$APPDIR/uninstall"
@@ -381,7 +387,6 @@ if [ $BUILD_WIN32 == 1 ]; then
 			cp -R "$APPDIR" "$INSTALLERSTAGEDIR/core"
 			
 			# Build and sign setup.exe
-			perl -pi -e "s/{{VERSION}}/$VERSION/" "$BUILDDIR/win_installer/defines.nsi"
 			"`cygpath -u \"$MAKENSISU\"`" /V1 "`cygpath -w \"$BUILDDIR/win_installer/installer.nsi\"`"
 			mv "$BUILDDIR/win_installer/setup.exe" "$INSTALLERSTAGEDIR"
 			if [ $SIGN == 1 ]; then

@@ -9,7 +9,7 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/zotero-standalone.
 Vcs-Git: git://anonscm.debian.org/collab-maint/zotero-standalone.git
 
 Package: zotero-standalone
-Architecture: i386 amd64
+Architecture: all
 Depends: xulrunner-12.0 | xulrunner-20.0, ${misc:Depends}
 Enhances: libreoffice-libreoffice-integration
 Description: organize and share your research sources
@@ -26,7 +26,7 @@ Description: organize and share your research sources
  require any Iceweasel/Firefox browser.
 
 Package: libreoffice-zotero-integration
-Architecture: i386 amd64
+Architecture: all
 Depends: zotero-standalone | xul-ext-zotero, libreoffice-java-common, unzip, ${misc:Depends}
 Recommends: libreoffice-writer
 Description: LibreOffice plugin to organize and share your research sources

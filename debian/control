@@ -2,7 +2,7 @@ Source: zotero-standalone-build
 Section: text
 Priority: optional
 Maintainer: Michele Cane <michele.cane@gmail.com>
-Build-Depends: debhelper (>= 9.0.0), zip
+Build-Depends: debhelper (>= 9.0.0), zip, unzip
 Standards-Version: 3.9.4
 Homepage: http://www.zotero.org/
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/zotero-standalone.git;a=summary
@@ -27,7 +27,7 @@ Description: organize and share your research sources
 
 Package: libreoffice-zotero-integration
 Architecture: all
-Depends: zotero-standalone | xul-ext-zotero, libreoffice-java-common, unzip, ${misc:Depends}
+Depends: zotero-standalone | xul-ext-zotero, libreoffice-java-common, ${misc:Depends}
 Recommends: libreoffice-writer
 Description: LibreOffice plugin to organize and share your research sources
  Zotero is helps you collect, manage,  and cite your research sources.

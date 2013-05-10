@@ -1,3 +1,8 @@
+From: Michele Cane <michele.cane@gmail.com>
+Subject: remove browser on first start
+Origin: vendor, Debian
+Last-Updated: 2013-05-10
+
 Index: zotero-standalone-build/modules/zotero/chrome/content/zotero/zoteroPane.js
 ===================================================================
 --- zotero-standalone-build.orig/modules/zotero/chrome/content/zotero/zoteroPane.js	2013-04-01 21:35:35.000000000 +0200

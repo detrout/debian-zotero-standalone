@@ -1,3 +1,9 @@
+zotero-standalone-build (4.0.6-4) unstable; urgency=low
+
+  * add xulrunner-17.0 dependency
+
+ -- Michele Cane <michele.cane@gmail.com>  Wed, 15 May 2013 23:04:40 +0200
+
 zotero-standalone-build (4.0.6-3) experimental; urgency=low
 
   * unzip extension with override_dh_auto_install and drop prerm and postint

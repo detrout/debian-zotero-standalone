@@ -10,7 +10,7 @@ Vcs-Git: git://anonscm.debian.org/collab-maint/zotero-standalone.git
 
 Package: zotero-standalone
 Architecture: all
-Depends: xulrunner-12.0 | xulrunner-20.0, ${misc:Depends}
+Depends: xulrunner-12.0 | xulrunner-17.0 | xulrunner-20.0, ${misc:Depends}
 Enhances: libreoffice-libreoffice-integration
 Description: organize and share your research sources
  Zotero is helps you collect, manage,  and cite your research sources.

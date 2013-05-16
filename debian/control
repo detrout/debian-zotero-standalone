@@ -13,14 +13,14 @@ Architecture: all
 Depends: xulrunner-12.0 | xulrunner-17.0 | xulrunner-20.0, ${misc:Depends}
 Enhances: libreoffice-libreoffice-integration
 Description: organize and share your research sources
- Zotero is helps you collect, manage,  and cite your research sources.
- It can automatically gather bibliographic information about resources
- available in hundreds of databases, library catalogs and the web.
+ Zotero helps you collect, manage, and cite your research sources.
  .
- Zotero also allows you to store your libraries online, so that they can be
+ Zotero allows you to store your libraries online, so that they can be
  accessed from any computer. Your online collections can also be shared with
  other Zotero users, letting you collaboratively create bibliographies and
- research notes.
+ research notes. It can automatically gather bibliographic information about
+ resources available in hundreds of databases, library catalogs and the web.
+
  .
  This package contains the standalone version of Zotero which does not
  require any Iceweasel/Firefox browser.

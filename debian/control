@@ -20,7 +20,6 @@ Description: organize and share your research sources
  other Zotero users, letting you collaboratively create bibliographies and
  research notes. It can automatically gather bibliographic information about
  resources available in hundreds of databases, library catalogs and the web.
-
  .
  This package contains the standalone version of Zotero which does not
  require any Iceweasel/Firefox browser.

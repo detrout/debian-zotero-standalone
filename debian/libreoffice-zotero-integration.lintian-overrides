@@ -1,0 +1,16 @@
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image1_16.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image1_26.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image2_16.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image2_26.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image3_16.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image3_26.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image4_16.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image4_26.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image5_16.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image5_26.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image6_16.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image6_26.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image7_16.bmp
+libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image7_26.bmp
+libreoffice-zotero-integration: jar-not-in-usr-share usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/Zotero.jar
+

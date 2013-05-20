@@ -1,3 +1,12 @@
+zotero-standalone-build (4.0.6-5) unstable; urgency=low
+
+  * Upload to unstable.
+  * debian/control: fix description (Closes: #708507).
+  * Disable install button for custom pdftotext and pdfinfo.
+  * debian/control: replaces zotero-libreoffice-integration.
+
+ -- Michele Cane <michele.cane@gmail.com>  Mon, 20 May 2013 21:20:53 +0200
+
 zotero-standalone-build (4.0.6-4) unstable; urgency=low
 
   * add xulrunner-17.0 dependency

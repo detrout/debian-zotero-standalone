@@ -1,3 +1,9 @@
+zotero-standalone-build (4.0.6-6) unstable; urgency=low
+
+  * debian/control: add zotero-libreoffice-integration dummy
+
+ -- Michele Cane <michele.cane@gmail.com>  Tue, 21 May 2013 10:18:18 +0200
+
 zotero-standalone-build (4.0.6-5) unstable; urgency=low
 
   * Upload to unstable.

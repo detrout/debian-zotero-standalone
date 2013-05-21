@@ -28,7 +28,8 @@ Package: libreoffice-zotero-integration
 Architecture: all
 Depends: zotero-standalone | xul-ext-zotero, libreoffice-java-common, ${misc:Depends}
 Recommends: libreoffice-writer
-Replaces: zotero-libreoffice-integration
+Replaces: zotero-libreoffice-integration (<< 4.0.6-1)
+Breaks: zotero-libreoffice-integration (<< 4.0.6-1)
 Description: LibreOffice plugin to organize and share your research sources
  Zotero is helps you collect, manage,  and cite your research sources.
  It can automatically gather bibliographic information about resources
@@ -41,3 +42,9 @@ Description: LibreOffice plugin to organize and share your research sources
  .
  This package contains the plugin to integrate Zotero in LibreOffice Writer.
 
+Package: zotero-libreoffice-integration
+Depends: libreoffice-zotero-integration, ${misc:Depends}
+Architecture: all
+Section: oldlibs
+Description: transitional dummy package
+ This is a transitional dummy package. It can safely be removed.

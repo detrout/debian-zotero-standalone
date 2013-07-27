@@ -163,10 +163,6 @@ else
 	if [ $? -eq 1 ]; then
 		exit;
 	fi
-	zip -0 -r -q ../zotero.jar .
-	rm -rf "$BUILDDIR/zotero/chrome/"*
-	mv ../zotero.jar .
-	cd ..
 	
 	# Build translators.zip
 	echo "Building translators.zip"
@@ -199,6 +195,11 @@ else
 		cd ..
 		rm -rf styles
 	fi
+
+	# Build zotero.jar
+	cd "$BUILDDIR/zotero"
+	zip -r -q zotero.jar chrome deleted.txt resource styles.zip translators.index translators.zip
+	rm -rf "chrome/"* install.rdf deleted.txt resource styles.zip translators.index translators.zip
 	
 	# Adjust chrome.manifest
 	echo "" >> "$BUILDDIR/zotero/chrome.manifest"
@@ -207,7 +208,7 @@ else
 	# Copy updater.ini
 	cp "$CALLDIR/assets/updater.ini" "$BUILDDIR/zotero"
 	
-	perl -pi -e 's/chrome\//jar:chrome\/zotero.jar\!\//g' "$BUILDDIR/zotero/chrome.manifest"
+	perl -pi -e 's^(chrome|resource)/^jar:zotero.jar\!/$1/^g' "$BUILDDIR/zotero/chrome.manifest"
 fi
 
 # Adjust connector pref
@@ -340,8 +341,12 @@ if [ $BUILD_WIN32 == 1 ]; then
 	perl -pi -e 's/SOURCE<\/em:version>/SA.'"$VERSION"'<\/em:version>/' "$APPDIR/extensions/zoteroOpenOfficeIntegration@zotero.org/install.rdf"
 	
 	# Remove unnecessary dlls
-	rm "$APPDIR/extensions/zoteroWinWordIntegration@zotero.org/components/zoteroWinWordIntegration.dll"
-	rm -rf "$APPDIR/extensions/zoteroWinWordIntegration@zotero.org/"components-!($GECKO_SHORT_VERSION)
+	INTEGRATIONDIR="$APPDIR/extensions/zoteroWinWordIntegration@zotero.org/"
+	rm -rf "$INTEGRATIONDIR/"components-!($GECKO_SHORT_VERSION)
+
+	# Fix chrome.manifest
+	perl -pi -e 's/^binary-component.*(?:\n|$)//sg' "$INTEGRATIONDIR/chrome.manifest"
+	echo "binary-component components-$GECKO_SHORT_VERSION/zoteroWinWordIntegration.dll" >> "$INTEGRATIONDIR/chrome.manifest"
 	
 	# Delete extraneous files
 	rm "$APPDIR/xulrunner/js.exe" "$APPDIR/xulrunner/redit.exe"

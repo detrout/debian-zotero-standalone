@@ -1,3 +1,10 @@
+zotero-standalone-build (4.0.9.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Add watch file.
+
+ -- Michele Cane <michele.cane@gmail.com>  Sat, 27 Jul 2013 12:58:36 +0200
+
 zotero-standalone-build (4.0.8-1) unstable; urgency=low
 
   * New upstream release

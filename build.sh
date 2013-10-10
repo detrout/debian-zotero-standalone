@@ -252,9 +252,6 @@ if [ $BUILD_MAC == 1 ]; then
 	# Mozilla no longer builds xulrunner-stub on OS X
 	mv "$CONTENTSDIR/MacOS/xulrunner" "$CONTENTSDIR/MacOS/zotero-bin"
 	cp "$CALLDIR/mac/zotero" "$CONTENTSDIR/MacOS/zotero"
-	# Hack to get the updater to work
-	mv "$CONTENTSDIR/MacOS/updater.app/Contents/MacOS/updater" "$CONTENTSDIR/MacOS/updater.app/Contents/MacOS/updater-bin"
-	cp "$CALLDIR/mac/updater" "$CONTENTSDIR/MacOS/updater.app/Contents/MacOS/updater"
 	cp "$BUILDDIR/application.ini" "$CONTENTSDIR/Resources"
 	cp "$CALLDIR/mac/Contents/Info.plist" "$CONTENTSDIR"
 	
@@ -271,7 +268,7 @@ if [ $BUILD_MAC == 1 ]; then
 	
 	# Add Mac-specific Standalone assets
 	cd "$CALLDIR/assets/mac"
-	zip -0 -r -q "$CONTENTSDIR/Resources/chrome/zotero.jar" *
+	zip -r -q "$CONTENTSDIR/Resources/zotero.jar" *
 	
 	# Add word processor plug-ins
 	mkdir "$CONTENTSDIR/Resources/extensions"

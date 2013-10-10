@@ -41,10 +41,3 @@ Description: LibreOffice plugin to organize and share your research sources
  research notes.
  .
  This package contains the plugin to integrate Zotero in LibreOffice Writer.
-
-Package: zotero-libreoffice-integration
-Depends: libreoffice-zotero-integration, ${misc:Depends}
-Architecture: all
-Section: oldlibs
-Description: transitional dummy package
- This is a transitional dummy package. It can safely be removed.

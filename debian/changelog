@@ -3,6 +3,7 @@ zotero-standalone-build (4.0.11-1) UNRELEASED; urgency=low
   * New upstream release.
   * Refresh patches.
   * Add xulrunner-24.0 as alternative dependency.
+  * Remove zotero-libreoffice-integration dummy package.
 
  -- Michele Cane <michele.cane@gmail.com>  Thu, 10 Oct 2013 16:27:14 +0200
 

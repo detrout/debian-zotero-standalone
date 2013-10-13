@@ -1,4 +1,4 @@
-zotero-standalone-build (4.0.11-1) UNRELEASED; urgency=low
+zotero-standalone-build (4.0.11-1) unstable; urgency=low
 
   * New upstream release.
   * Refresh patches.
@@ -7,7 +7,7 @@ zotero-standalone-build (4.0.11-1) UNRELEASED; urgency=low
   * Increase xulrunner maximum version to 25.0 in launcher.
   * debian/patches/06_xulrunner_version.diff.
 
- -- Michele Cane <michele.cane@gmail.com>  Thu, 10 Oct 2013 16:27:14 +0200
+ -- Michele Cane <michele.cane@gmail.com>  Sun, 13 Oct 2013 16:02:52 +0200
 
 zotero-standalone-build (4.0.9.1-1) unstable; urgency=low
 

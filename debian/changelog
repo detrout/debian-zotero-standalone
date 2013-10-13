@@ -5,6 +5,7 @@ zotero-standalone-build (4.0.11-1) UNRELEASED; urgency=low
   * Add xulrunner-24.0 as alternative dependency.
   * Remove zotero-libreoffice-integration dummy package.
   * Increase xulrunner maximum version to 25.0 in launcher.
+  * debian/patches/06_xulrunner_version.diff.
 
  -- Michele Cane <michele.cane@gmail.com>  Thu, 10 Oct 2013 16:27:14 +0200
 

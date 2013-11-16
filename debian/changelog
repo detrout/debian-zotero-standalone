@@ -2,6 +2,7 @@ zotero-standalone-build (4.0.14-1) UNRELEASED; urgency=low
 
   * New upstream release. 
   * Refresh patches.
+  * Drop 06_xulrunner_version.diff.
 
  -- Michele Cane <michele.cane@gmail.com>  Sat, 16 Nov 2013 21:05:41 +0100
 

@@ -1,6 +1,7 @@
 zotero-standalone-build (4.0.17) UNRELEASED; urgency=low
 
   * New upstream release. 
+  * Refresh patches.
 
  -- Michele Cane <michele.cane@gmail.com>  Mon, 16 Dec 2013 13:38:53 +0100
 

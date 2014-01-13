@@ -3,7 +3,7 @@ Section: text
 Priority: optional
 Maintainer: Michele Cane <michele.cane@gmail.com>
 Build-Depends: debhelper (>= 9.0.0), zip, unzip
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: http://www.zotero.org/
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/zotero-standalone.git;a=summary
 Vcs-Git: git://anonscm.debian.org/collab-maint/zotero-standalone.git

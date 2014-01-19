@@ -1,0 +1,2 @@
+xul-ext-zotero: embedded-javascript-library usr/share/xul-ext/zotero/resource/tinymce/tiny_mce.js
+xul-ext-zotero: embedded-javascript-library usr/share/xul-ext/zotero/resource/tinymce/tiny_mce_popup.js

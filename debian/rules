@@ -6,10 +6,11 @@
 DEBIAN_VERSION := $(shell dpkg-parsechangelog | grep ^Version | cut -d ' ' -f 2)
 
 %:
-	dh $@ 
+	dh $@ --with xul-ext
 
 override_dh_auto_build:
 	./build.sh -p l -v ${DEBIAN_VERSION} -d
+	xpi-pack modules/zotero xul-ext-zotero.xpi
 	dh_auto_build -a
 
 override_dh_auto_install:
@@ -17,8 +18,10 @@ override_dh_auto_install:
 	rm -f staging/zotero-libreoffice-integration/COPYING
 	mkdir -p staging/Zotero_OpenOffice_Integration
 	unzip staging/zotero-libreoffice-integration/install/Zotero_OpenOffice_Integration.oxt -d staging/Zotero_OpenOffice_Integration
+	install-xpi -p xul-ext-zotero -r xul-ext-zotero.xpi
 	dh_auto_install -a
 
 override_dh_auto_clean:
 	rm -rf staging
+	rm -f xul-ext-zotero.xpi
 	dh_auto_clean -a

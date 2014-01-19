@@ -2,8 +2,8 @@ zotero-standalone-build (4.0.17-2) UNRELEASED; urgency=medium
 
   * debian/rules: build xul-ext-zotero.
   * debian/control: add xul-ext-zotero package and mozilla-devscitps build-dep.
-  * remove staging/zotero-standalone/xul-ext/zotero-standalone/COPYING
-  * remove staging/zotero-standalone/xul-ext/zotero-standalone/resource/tinymce/license.txt 
+  * remove ../xul-ext/zotero-standalone/COPYING
+  * remove ../xul-ext/zotero-standalone/resource/tinymce/license.txt 
 
  -- Michele Cane <michele.cane@gmail.com>  Sun, 19 Jan 2014 16:43:04 +0100
 

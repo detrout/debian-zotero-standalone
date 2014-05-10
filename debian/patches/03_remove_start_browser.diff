@@ -5,9 +5,9 @@ Last-Updated: 2013-05-10
 
 Index: zotero-standalone-build/modules/zotero/chrome/content/zotero/zoteroPane.js
 ===================================================================
---- zotero-standalone-build.orig/modules/zotero/chrome/content/zotero/zoteroPane.js	2013-11-16 20:46:04.274166108 +0100
-+++ zotero-standalone-build/modules/zotero/chrome/content/zotero/zoteroPane.js	2013-11-16 20:46:04.270166100 +0100
-@@ -224,7 +224,9 @@
+--- zotero-standalone-build.orig/modules/zotero/chrome/content/zotero/zoteroPane.js	2014-05-10 20:21:01.095332394 +0200
++++ zotero-standalone-build/modules/zotero/chrome/content/zotero/zoteroPane.js	2014-05-10 20:21:01.087332387 +0200
+@@ -222,7 +222,9 @@
  			if (Zotero.Schema.dbInitialized || !Zotero.Sync.Server.enabled) {
  				setTimeout(function () {
  					if(Zotero.isStandalone) {

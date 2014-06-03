@@ -2,6 +2,7 @@ zotero-standalone-build (4.0.20-1) UNRELEASED; urgency=medium
 
   * New upstream release.
   * Refresh patches.
+  * Update xulrunner dependencies (Closes: #749694).
 
  -- Michele Cane <michele.cane@gmail.com>  Sat, 10 May 2014 20:20:07 +0200
 

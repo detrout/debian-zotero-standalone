@@ -1,10 +1,11 @@
-zotero-standalone-build (4.0.20-1) UNRELEASED; urgency=medium
+zotero-standalone-build (4.0.20-1) unstable; urgency=medium
 
   * New upstream release.
   * Refresh patches.
   * Update xulrunner dependencies (Closes: #749694).
+  * Release to unstable.
 
- -- Michele Cane <michele.cane@gmail.com>  Sat, 10 May 2014 20:20:07 +0200
+ -- Michele Cane <michele.cane@gmail.com>  Tue, 03 Jun 2014 21:11:01 +0200
 
 zotero-standalone-build (4.0.17-2) unstable; urgency=medium
 

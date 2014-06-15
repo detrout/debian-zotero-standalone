@@ -1,10 +1,11 @@
-zotero-standalone-build (4.0.20-2~1) UNRELEASED; urgency=medium
+zotero-standalone-build (4.0.20-2) unstable; urgency=medium
 
   * Checkk for iceweasel at startup.
   * Add iceweasel dependency (Closes: #751564).
   * Add geko version patch.
+  * Release to unstable.
 
- -- Michele Cane <michele.cane@gmail.com>  Sun, 15 Jun 2014 17:39:42 +0200
+ -- Michele Cane <michele.cane@gmail.com>  Sun, 15 Jun 2014 19:59:41 +0200
 
 zotero-standalone-build (4.0.20-1) unstable; urgency=medium
 

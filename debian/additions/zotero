@@ -13,8 +13,17 @@ for version in `LC_ALL=C seq 5.0 25.0 | tac` 3.6 29; do
     fi
 done
 
+# Try firefox if no xulrunner can be found
 if [ -z "$XULRUNNER" ]; then
-    echo "xulrunner version 3.6 or newer required, but not found. Bailing out." 1>&2
+    FFTMP=`which firefox`
+    if [ -n "$FFTMP" -a -x "$FFTMP" ]; then
+        echo "xulrunner not found, trying firefox instead." 1>&2
+        XULRUNNER="$FFTMP -app"
+    fi
+fi
+
+if [ -z "$XULRUNNER" ]; then
+    echo "xulrunner version 3.6 (or firefox version 3.5) or newer required, but not found. Bailing out." 1>&2
     exit 1;
 fi
 

@@ -5,9 +5,9 @@ Last-Updated: 2013-05-10
 
 Index: zotero-standalone-build/assets/prefs.js
 ===================================================================
---- zotero-standalone-build.orig/assets/prefs.js	2013-11-16 20:45:37.850133604 +0100
-+++ zotero-standalone-build/assets/prefs.js	2013-11-16 20:45:37.774133556 +0100
-@@ -74,7 +74,7 @@
+--- zotero-standalone-build.orig/assets/prefs.js	2014-07-28 19:53:46.342142929 +0200
++++ zotero-standalone-build/assets/prefs.js	2014-07-28 19:53:46.334142919 +0200
+@@ -77,7 +77,7 @@
  
  /** The below is imported from https://developer.mozilla.org/en/XULRunner/Application_Update **/
  // Whether or not app updates are enabled
@@ -16,18 +16,11 @@ Index: zotero-standalone-build/assets/prefs.js
  
  // This preference turns on app.update.mode and allows automatic download and
  // install to take place. We use a separate boolean toggle for this to make
-@@ -142,4 +142,4 @@
- pref("app.update.incompatible.mode", 0);
- 
- // update channel for this build
--pref("app.update.channel", "default");
-\ No newline at end of file
-+pref("app.update.channel", "default");
 Index: zotero-standalone-build/modules/zotero/chrome/content/zotero/standalone/standalone.xul
 ===================================================================
---- zotero-standalone-build.orig/modules/zotero/chrome/content/zotero/standalone/standalone.xul	2013-11-16 20:45:37.850133604 +0100
-+++ zotero-standalone-build/modules/zotero/chrome/content/zotero/standalone/standalone.xul	2013-11-16 20:45:37.846133601 +0100
-@@ -197,10 +197,12 @@
+--- zotero-standalone-build.orig/modules/zotero/chrome/content/zotero/standalone/standalone.xul	2014-07-28 19:53:46.342142929 +0200
++++ zotero-standalone-build/modules/zotero/chrome/content/zotero/standalone/standalone.xul	2014-07-28 19:53:46.338142924 +0200
+@@ -196,10 +196,12 @@
  									  accesskey="&helpReportErrors.accesskey;"
  									  label="&helpReportErrors.label;"
  									  command="cmd_zotero_reportErrors"/>

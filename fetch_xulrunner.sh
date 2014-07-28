@@ -53,6 +53,14 @@ if [ $BUILD_MAC == 1 ]; then
 	curl -O $SITE/xulrunner-$GECKO_VERSION.en-US.mac.tar.bz2
 	tar -xjf xulrunner-$GECKO_VERSION.en-US.mac.tar.bz2
 	rm xulrunner-$GECKO_VERSION.en-US.mac.tar.bz2
+
+	# Extract XUL bundle from Firefox
+	curl -O "https://ftp.mozilla.org/pub/mozilla.org/firefox/releases/$GECKO_VERSION/mac/en-US/Firefox%20$GECKO_VERSION.dmg"
+	hdiutil detach -quiet /Volumes/Zotero 2>/dev/null
+	hdiutil attach -quiet "Firefox%20$GECKO_VERSION.dmg"
+	cp /Volumes/Firefox/Firefox.app/Contents/MacOS/XUL XUL.framework/Versions/Current/XUL
+	hdiutil detach -quiet /Volumes/Zotero
+	rm "Firefox%20$GECKO_VERSION.dmg"
 fi
 
 if [ $BUILD_WIN32 == 1 ]; then
@@ -61,6 +69,19 @@ if [ $BUILD_WIN32 == 1 ]; then
 	unzip -q xulrunner-$GECKO_VERSION.en-US.win32.zip
 	rm xulrunner-$GECKO_VERSION.en-US.win32.zip
 	mv xulrunner xulrunner_win32
+
+	# Extract XUL bundle from Firefox
+	curl -O "https://ftp.mozilla.org/pub/mozilla.org/firefox/releases/30.0/win32/en-US/Firefox%20Setup%20$GECKO_VERSION.exe"
+	if which 7z >/dev/null 2>&1; then
+		Z7=7z
+	elif [ -x "$EXE7ZIP" ]; then
+		Z7="`cygpath -u "$EXE7ZIP"`"
+	fi
+	cd xulrunner_win32
+	rm *.dll *.chk
+	"$Z7" e "../Firefox%20Setup%20$GECKO_VERSION.exe" core/*.dll core/*.chk
+	cd ..
+	rm "Firefox%20Setup%20$GECKO_VERSION.exe"
 fi
 
 if [ $BUILD_LINUX == 1 ]; then
@@ -74,4 +95,15 @@ if [ $BUILD_LINUX == 1 ]; then
 	tar -xjf xulrunner-$GECKO_VERSION.en-US.linux-x86_64.tar.bz2
 	rm xulrunner-$GECKO_VERSION.en-US.linux-x86_64.tar.bz2
 	mv xulrunner xulrunner_linux-x86_64
+
+	# Extract XUL bundle from Firefox
+	curl -O "https://ftp.mozilla.org/pub/mozilla.org/firefox/releases/$GECKO_VERSION/linux-i686/en-US/firefox-$GECKO_VERSION.tar.bz2"
+	tar -xjf firefox-$GECKO_VERSION.tar.bz2 firefox/libxul.so
+	mv firefox/libxul.so xulrunner_linux-i686/libxul.so
+	#rm -rf firefox "firefox-$GECKO_VERSION.tar.bz2"
+
+	curl -O "https://ftp.mozilla.org/pub/mozilla.org/firefox/releases/$GECKO_VERSION/linux-x86_64/en-US/firefox-$GECKO_VERSION.tar.bz2"
+	tar -xjf firefox-$GECKO_VERSION.tar.bz2 firefox/libxul.so
+	mv firefox/libxul.so xulrunner_linux-x86_64/libxul.so
+	#rm -rf firefox "firefox-$GECKO_VERSION.tar.bz2"
 fi

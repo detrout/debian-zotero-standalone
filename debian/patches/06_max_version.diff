@@ -1,0 +1,13 @@
+Index: zotero-standalone-build/assets/application.ini
+===================================================================
+--- zotero-standalone-build.orig/assets/application.ini	2014-07-28 19:54:20.510184810 +0200
++++ zotero-standalone-build/assets/application.ini	2014-07-28 20:28:08.701124757 +0200
+@@ -8,7 +8,7 @@
+ 
+ [Gecko]
+ MinVersion=24.0
+-MaxVersion=30.*
++MaxVersion=32.*
+ 
+ [XRE]
+ EnableExtensionManager=1

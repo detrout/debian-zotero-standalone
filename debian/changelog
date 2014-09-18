@@ -1,9 +1,10 @@
-zotero-standalone-build (4.0.22-1) UNRELEASED; urgency=medium
+zotero-standalone-build (4.0.22-1) unstable; urgency=medium
 
   * New upstream release.
   * Drop 06_max_version patch.
+  * Release to unstable.
 
- -- Michele Cane <michele.cane@gmail.com>  Thu, 18 Sep 2014 21:14:00 +0200
+ -- Michele Cane <michele.cane@gmail.com>  Thu, 18 Sep 2014 21:20:18 +0200
 
 zotero-standalone-build (4.0.21.5-1) unstable; urgency=medium
 

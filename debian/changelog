@@ -1,6 +1,7 @@
 zotero-standalone-build (4.0.22-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * Drop 06_max_version patch.
 
  -- Michele Cane <michele.cane@gmail.com>  Thu, 18 Sep 2014 21:14:00 +0200
 

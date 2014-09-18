@@ -1,3 +1,9 @@
+zotero-standalone-build (4.0.22-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Michele Cane <michele.cane@gmail.com>  Thu, 18 Sep 2014 21:14:00 +0200
+
 zotero-standalone-build (4.0.21.5-1) unstable; urgency=medium
 
   * New upstream release.

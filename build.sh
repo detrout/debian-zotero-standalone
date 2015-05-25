@@ -246,17 +246,17 @@ if [ $BUILD_MAC == 1 ]; then
 	cp -r "$CALLDIR/mac/Contents" "$APPDIR"
 	CONTENTSDIR="$APPDIR/Contents"
 	
-	# Merge xulrunner and relevant assets
+	# Merge relevant assets from Firefox
 	mkdir "$CONTENTSDIR/MacOS"
-	cp -a "$MAC_RUNTIME_PATH/Versions/Current"/* "$CONTENTSDIR/MacOS"
-	# Mozilla no longer builds xulrunner-stub on OS X
-	mv "$CONTENTSDIR/MacOS/xulrunner" "$CONTENTSDIR/MacOS/zotero-bin"
+	cp -r "$MAC_RUNTIME_PATH/Contents/MacOS/"!(firefox-bin|crashreporter.app) "$CONTENTSDIR/MacOS"
+	cp -r "$MAC_RUNTIME_PATH/Contents/Resources/"!(application.ini|updater.ini|update-settings.ini|browser|precomplete|removed-files|webapprt*|*.icns|defaults|*.lproj) "$CONTENTSDIR/Resources"
+
+	# Use our own launcher
+	mv "$CONTENTSDIR/MacOS/firefox" "$CONTENTSDIR/MacOS/zotero-bin"
 	cp "$CALLDIR/mac/zotero" "$CONTENTSDIR/MacOS/zotero"
 	cp "$BUILDDIR/application.ini" "$CONTENTSDIR/Resources"
-	cp "$CALLDIR/mac/Contents/Info.plist" "$CONTENTSDIR"
 	
 	# Modify Info.plist
-	cp "$CALLDIR/mac/Contents/Info.plist" "$CONTENTSDIR/Info.plist"
 	perl -pi -e "s/{{VERSION}}/$VERSION/" "$CONTENTSDIR/Info.plist"
 	perl -pi -e "s/{{VERSION_NUMERIC}}/$VERSION_NUMERIC/" "$CONTENTSDIR/Info.plist"
 	# Needed for "monkeypatch" Windows builds: 
@@ -283,12 +283,17 @@ if [ $BUILD_MAC == 1 ]; then
 	find "$CONTENTSDIR" -depth -type d -name .git -exec rm -rf {} \;
 	find "$CONTENTSDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
 	find "$CONTENTSDIR/Resources/extensions" -depth -type d -name build -exec rm -rf {} \;
+
+	# Copy over removed-files and make a precomplete file since it
+	# needs to be stable for the signature
+	cp "$CALLDIR/update-packaging/removed-files_mac" "$CONTENTSDIR/Resources/removed-files"
+	touch "$CONTENTSDIR/Resources/precomplete"
 	
 	# Sign
 	if [ $SIGN == 1 ]; then
-		/usr/bin/codesign --force --sign "$DEVELOPER_ID" --resource-rules "$CALLDIR/mac/CodeResources" \
-			--requirements "$CODESIGN_REQUIREMENTS" \
-			"$APPDIR"
+		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/zotero-bin"
+		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR"
+		/usr/bin/codesign --verify -vvvv "$APPDIR"
 	fi
 	
 	# Build disk image

@@ -4,11 +4,11 @@ BUILD_WIN32=1
 BUILD_LINUX=1
 
 # Version of Gecko to build with
-GECKO_VERSION="32.0"
-GECKO_SHORT_VERSION="32.0"
+GECKO_VERSION="35.0"
+GECKO_SHORT_VERSION="35.0"
 
 # Paths to Gecko runtimes
-MAC_RUNTIME_PATH="`pwd`/xulrunner/XUL.framework"
+MAC_RUNTIME_PATH="`pwd`/xulrunner/Firefox.app"
 WIN32_RUNTIME_PATH="`pwd`/xulrunner/xulrunner_win32"
 LINUX_i686_RUNTIME_PATH="`pwd`/xulrunner/xulrunner_linux-i686"
 LINUX_x86_64_RUNTIME_PATH="`pwd`/xulrunner/xulrunner_linux-x86_64"

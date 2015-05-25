@@ -2,6 +2,7 @@ zotero-standalone-build (4.0.26.2-1) UNRELEASED; urgency=medium
 
   * New upstream release.
   * Patches refreshed.
+  * Increase Geko Max Version to 40 (06_Max_Version.diff) (Closes: #785793).
 
  -- Michele Cane <michele.cane@gmail.com>  Mon, 25 May 2015 16:07:32 +0200
 

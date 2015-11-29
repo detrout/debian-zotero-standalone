@@ -3,11 +3,9 @@ Subject: remove browser on first start
 Origin: vendor, Debian
 Last-Updated: 2013-05-10
 
-Index: zotero-standalone-build/modules/zotero/chrome/content/zotero/zoteroPane.js
-===================================================================
---- zotero-standalone-build.orig/modules/zotero/chrome/content/zotero/zoteroPane.js	2015-05-25 16:09:37.874385282 +0200
-+++ zotero-standalone-build/modules/zotero/chrome/content/zotero/zoteroPane.js	2015-05-25 16:09:37.866385286 +0200
-@@ -228,7 +228,9 @@
+--- a/modules/zotero/chrome/content/zotero/zoteroPane.js
++++ b/modules/zotero/chrome/content/zotero/zoteroPane.js
+@@ -235,7 +235,9 @@ var ZoteroPane = new function()
  			if (Zotero.Schema.dbInitialized || !Zotero.Sync.Server.enabled) {
  				setTimeout(function () {
  					if(Zotero.isStandalone) {

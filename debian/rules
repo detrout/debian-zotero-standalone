@@ -3,13 +3,13 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-DEBIAN_VERSION := $(shell dpkg-parsechangelog | grep ^Version | cut -d ' ' -f 2)
+include /usr/share/dpkg/pkg-info.mk
 
 %:
 	dh $@ --with xul-ext
 
 override_dh_auto_build:
-	./build.sh -p l -v ${DEBIAN_VERSION} -d
+	./build.sh -p l -v ${DEB_VERSION} -d
 
 	# Create the XPI file, filtering out the test subdirectory
 	cp -a modules/zotero modules/zotero.new

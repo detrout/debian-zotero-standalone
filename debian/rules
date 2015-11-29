@@ -10,7 +10,12 @@ DEBIAN_VERSION := $(shell dpkg-parsechangelog | grep ^Version | cut -d ' ' -f 2)
 
 override_dh_auto_build:
 	./build.sh -p l -v ${DEBIAN_VERSION} -d
-	xpi-pack modules/zotero xul-ext-zotero.xpi
+
+	# Create the XPI file, filtering out the test subdirectory
+	cp -a modules/zotero modules/zotero.new
+	rm -rf modules/zotero.new/test
+	xpi-pack modules/zotero.new xul-ext-zotero.xpi
+	rm -rf modules/zotero.new
 
 override_dh_auto_install:
 	rm -f staging/zotero-standalone/COPYING

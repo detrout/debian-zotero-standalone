@@ -1,7 +1,7 @@
 Source: zotero-standalone-build
 Section: text
 Priority: optional
-Maintainer: Michele Cane <michele.cane@gmail.com>
+Maintainer: Sébastien Villemot <sebastien@debian.org>
 Build-Depends: debhelper (>= 9.0.0), zip, unzip, mozilla-devscripts (>= 0.22)
 Standards-Version: 3.9.5
 Homepage: http://www.zotero.org/

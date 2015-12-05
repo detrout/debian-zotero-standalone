@@ -11,6 +11,7 @@ License: AGPL-3.0
 
 Files: debian/*
 Copyright: 2011, Michele Cane <michele.cane@gmail.com>
+           2015 Sébastien Villemot <sebastien@debian.org>
 License: GPL-3
 
 Files: linux/run-zotero.sh

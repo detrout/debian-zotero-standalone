@@ -2,7 +2,11 @@ Source: zotero-standalone-build
 Section: text
 Priority: optional
 Maintainer: Sébastien Villemot <sebastien@debian.org>
-Build-Depends: debhelper (>= 9.0.0), zip, unzip, mozilla-devscripts (>= 0.22)
+Build-Depends: debhelper (>= 9.0.0), zip, unzip, mozilla-devscripts (>= 0.22),
+               javahelper, default-jdk,
+               ure, libreoffice-java-common, libjna-java,
+               libjackson2-core-java, libjackson2-annotations-java,
+               libjackson2-databind-java
 Standards-Version: 3.9.6
 Homepage: http://www.zotero.org/
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/zotero-standalone.git;a=summary
@@ -41,7 +45,7 @@ Description: Iceweasel extension to organize and share your research sources
 
 Package: libreoffice-zotero-integration
 Architecture: all
-Depends: zotero-standalone | xul-ext-zotero, libreoffice-java-common, ${misc:Depends}
+Depends: zotero-standalone | xul-ext-zotero, ${misc:Depends}, ${java:Depends}
 Recommends: libreoffice-writer
 Replaces: zotero-libreoffice-integration (<< 4.0.6-1)
 Breaks: zotero-libreoffice-integration (<< 4.0.6-1)

@@ -1,0 +1,2 @@
+usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/Zotero.jar:
+ RegistrationClassName: org.zotero.integration.ooo.comp.RegistrationHandler

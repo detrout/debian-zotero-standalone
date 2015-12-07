@@ -22,8 +22,6 @@ override_dh_auto_install:
 	rm -f staging/zotero-standalone/xul-ext/zotero-standalone/COPYING
 	rm -f staging/zotero-standalone/xul-ext/zotero-standalone/resource/tinymce/license.txt
 	rm -f staging/zotero-libreoffice-integration/COPYING
-	mkdir -p staging/Zotero_OpenOffice_Integration
-	unzip staging/zotero-libreoffice-integration/install/Zotero_OpenOffice_Integration.oxt -d staging/Zotero_OpenOffice_Integration
 	install-xpi -p xul-ext-zotero -r xul-ext-zotero.xpi
 
 override_dh_auto_clean:

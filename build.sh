@@ -154,8 +154,8 @@ else
 	find "$BUILDDIR/zotero/chrome" -name .DS_Store -exec rm -f {} \;
 	
 	# Set version
-	perl -pi -e "s/VERSION: \"[^\"]*\"/VERSION: \"$VERSION\"/" \
-		"$BUILDDIR/zotero/chrome/content/zotero/xpcom/zotero.js"
+	perl -pi -e "s/VERSION: *\'[^\"]*\'/VERSION: \'$VERSION\'/" \
+		"$BUILDDIR/zotero/resource/config.js"
 	
 	# Zip chrome into JAR
 	cd "$BUILDDIR/zotero/chrome"
@@ -209,6 +209,9 @@ else
 	cp "$CALLDIR/assets/updater.ini" "$BUILDDIR/zotero"
 	
 	perl -pi -e 's^(chrome|resource)/^jar:zotero.jar\!/$1/^g' "$BUILDDIR/zotero/chrome.manifest"
+
+	# Remove test directory
+	rm -rf "$BUILDDIR/zotero/test"
 fi
 
 # Adjust connector pref
@@ -228,7 +231,7 @@ cp "$CALLDIR/assets/prefs.js" "$BUILDDIR/zotero/defaults/preferences"
 perl -pi -e 's/pref\("app\.update\.channel", "[^"]*"\);/pref\("app\.update\.channel", "'"$UPDATE_CHANNEL"'");/' "$BUILDDIR/zotero/defaults/preferences/prefs.js"
 perl -pi -e 's/%GECKO_VERSION%/'"$GECKO_VERSION"'/g' "$BUILDDIR/zotero/defaults/preferences/prefs.js"
 
-# Delete .DS_Store and .git
+# Delete .DS_Store, .git, and tests
 find "$BUILDDIR" -depth -type d -name .git -exec rm -rf {} \;
 find "$BUILDDIR" -name .DS_Store -exec rm -f {} \;
 
@@ -248,13 +251,17 @@ if [ $BUILD_MAC == 1 ]; then
 	
 	# Merge relevant assets from Firefox
 	mkdir "$CONTENTSDIR/MacOS"
-	cp -r "$MAC_RUNTIME_PATH/Contents/MacOS/"!(firefox-bin|crashreporter.app) "$CONTENTSDIR/MacOS"
+	cp -r "$MAC_RUNTIME_PATH/Contents/MacOS/"!(firefox-bin|crashreporter.app|updater.app) "$CONTENTSDIR/MacOS"
 	cp -r "$MAC_RUNTIME_PATH/Contents/Resources/"!(application.ini|updater.ini|update-settings.ini|browser|precomplete|removed-files|webapprt*|*.icns|defaults|*.lproj) "$CONTENTSDIR/Resources"
 
 	# Use our own launcher
 	mv "$CONTENTSDIR/MacOS/firefox" "$CONTENTSDIR/MacOS/zotero-bin"
 	cp "$CALLDIR/mac/zotero" "$CONTENTSDIR/MacOS/zotero"
 	cp "$BUILDDIR/application.ini" "$CONTENTSDIR/Resources"
+
+	# Use our own updater, because Mozilla's requires updates signed by Mozilla
+	cd "$CONTENTSDIR/MacOS"
+	tar -xjf "$CALLDIR/mac/updater.tar.bz2"
 	
 	# Modify Info.plist
 	perl -pi -e "s/{{VERSION}}/$VERSION/" "$CONTENTSDIR/Info.plist"
@@ -291,6 +298,8 @@ if [ $BUILD_MAC == 1 ]; then
 	
 	# Sign
 	if [ $SIGN == 1 ]; then
+		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/updater.app/Contents/MacOS/updater"
+		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/updater.app"
 		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/zotero-bin"
 		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR"
 		/usr/bin/codesign --verify -vvvv "$APPDIR"
@@ -327,11 +336,11 @@ if [ $BUILD_WIN32 == 1 ]; then
 	cat "$CALLDIR/win/installer/updater_append.ini" >> "$APPDIR/updater.ini"
 	mv "$APPDIR/xulrunner/xulrunner-stub.exe" "$APPDIR/zotero.exe"
 	
-	# This used to be bug 722810, but that bug was actually fixed for Gecko 12. Now it's
-	# unfortunately broken again.
-	cp "$WIN32_RUNTIME_PATH/msvcp100.dll" \
-	   "$WIN32_RUNTIME_PATH/msvcr100.dll" \
-	   "$APPDIR/"
+	# This used to be bug 722810, but that bug was actually fixed for Gecko 12.
+	# Then it was broken again. Now it seems okay...
+	# cp "$WIN32_RUNTIME_PATH/msvcp120.dll" \
+	#    "$WIN32_RUNTIME_PATH/msvcr120.dll" \
+	#    "$APPDIR/"
 	
 	# Add Windows-specific Standalone assets
 	cd "$CALLDIR/assets/win"
@@ -346,14 +355,6 @@ if [ $BUILD_WIN32 == 1 ]; then
 		rm -rf "$APPDIR/extensions/$ext/.git"
 	done
 
-	# Remove unnecessary dlls
-	INTEGRATIONDIR="$APPDIR/extensions/zoteroWinWordIntegration@zotero.org/"
-	rm -rf "$INTEGRATIONDIR/"components-!($GECKO_SHORT_VERSION)
-
-	# Fix chrome.manifest
-	perl -pi -e 's/^binary-component.*(?:\n|$)//sg' "$INTEGRATIONDIR/chrome.manifest"
-	echo "binary-component components-$GECKO_SHORT_VERSION/zoteroWinWordIntegration.dll" >> "$INTEGRATIONDIR/chrome.manifest"
-	
 	# Delete extraneous files
 	rm "$APPDIR/xulrunner/js.exe" "$APPDIR/xulrunner/redit.exe"
 	find "$APPDIR" -depth -type d -name .git -exec rm -rf {} \;
@@ -446,7 +447,8 @@ if [ $BUILD_LINUX == 1 ]; then
 		# Merge xulrunner and relevant assets
 		cp -R "$BUILDDIR/zotero/"* "$BUILDDIR/application.ini" "$APPDIR"
 		cp -r "$RUNTIME_PATH" "$APPDIR/xulrunner"
-		mv "$APPDIR/xulrunner/xulrunner-stub" "$APPDIR/zotero"
+		rm "$APPDIR/xulrunner/xulrunner-stub"
+		cp "$CALLDIR/linux/xulrunner-stub-$arch" "$APPDIR/zotero"
 		chmod 755 "$APPDIR/zotero"
 	
 		# Add Unix-specific Standalone assets

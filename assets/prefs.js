@@ -16,6 +16,8 @@ pref("dom.max_chrome_script_run_time", 0);
 // Use OS locale
 pref("intl.locale.matchOS", true);
 
+// Needed due to https://bugzilla.mozilla.org/show_bug.cgi?id=1181977
+pref("browser.hiddenWindowChromeURL", "chrome://zotero/content/standalone/hiddenWindow.xul");
 // Use basicViewer for opening new DOM windows from content (for TinyMCE)
 pref("browser.chromeURL", "chrome://zotero/content/standalone/basicViewer.xul");
 // We need these to get the save dialog working with contentAreaUtils.js
@@ -97,7 +99,6 @@ pref("app.update.mode", 2);
 
 // If set to true, the Update Service will present no UI for any event.
 pref("app.update.silent", false);
-pref("app.update.showInstalledUI", true);
 
 // Update service URL:
 // You do not need to use all the %VAR% parameters. Use what you need, %PRODUCT%,%VERSION%,%BUILD_ID%,%CHANNEL% for example
@@ -135,6 +136,9 @@ pref("app.update.timerMinimumDelay", 120);
 // upgrade start page instead! Other apps may wish to show this UI, and supply
 // a whatsNewURL field in their brand.properties that contains a link to a page
 // which tells users what's new in this new update.
+
+// This needs to be disabled since it makes us error out on update for some
+// unknown reason
 pref("app.update.showInstalledUI", false);
 
 // 0 = suppress prompting for incompatibilities if there are updates available

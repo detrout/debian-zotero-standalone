@@ -34,6 +34,7 @@ Depends: ${misc:Depends}, ${xpi:Depends}
 Recommends: ${xpi:Recommends}
 Provides: ${xpi:Provides}
 Enhances: ${xpi:Enhances}
+Breaks: ${xpi:Breaks}
 Description: Iceweasel extension to organize and share your research sources
  Zotero helps you collect, manage, and cite your research sources.
  .

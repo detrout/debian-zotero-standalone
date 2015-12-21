@@ -1,2 +1,3 @@
-xul-ext-zotero: embedded-javascript-library usr/share/xul-ext/zotero/resource/tinymce/tiny_mce.js
-xul-ext-zotero: embedded-javascript-library usr/share/xul-ext/zotero/resource/tinymce/tiny_mce_popup.js
+# Zotero uses a fork of tiny_mce
+xul-ext-zotero: embedded-javascript-library usr/share/xul-ext/zotero/resource/tinymce/tiny_mce.js please use tinymce
+xul-ext-zotero: embedded-javascript-library usr/share/xul-ext/zotero/resource/tinymce/tiny_mce_popup.js please use tinymce

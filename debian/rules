@@ -43,3 +43,20 @@ override_jh_depends:
 override_dh_auto_clean:
 	rm -rf staging
 	rm -f xul-ext-zotero.xpi
+
+get-orig-source:
+	rm -rf zotero-standalone-build-$(DEB_VERSION_UPSTREAM)
+	git clone https://github.com/zotero/zotero-standalone-build.git zotero-standalone-build-$(DEB_VERSION_UPSTREAM)
+	# Checkout right commit and submodules, and remove non-DFSG compliant files.
+	cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM) && \
+		git checkout `echo $(DEB_VERSION_UPSTREAM) | sed 's/\+dfsg\d*//'` && \
+		git submodule update --init --recursive && \
+		git submodule deinit modules/zotero-word-for-mac-integration && \
+		git submodule deinit modules/zotero-word-for-windows-integration && \
+		rm -rf win/ mac/* linux/xulrunner-stub-* modules/zotero-libreoffice-integration/build/lib/*.jar modules/zotero-libreoffice-integration/install/Zotero_OpenOffice_Integration.oxt
+	# Pack reproducible orig tarball
+	tar -caf zotero-standalone-build_$(DEB_VERSION_UPSTREAM).orig.tar.xz \
+		--format=pax --owner=root --group=root --mode='a=rX,u+w' --sort=name --exclude-vcs \
+		--mtime=@`cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM) && git log -n1 --format=%ct` \
+		zotero-standalone-build-$(DEB_VERSION_UPSTREAM)
+	rm -rf zotero-standalone-build-$(DEB_VERSION_UPSTREAM)

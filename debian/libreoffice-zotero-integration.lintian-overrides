@@ -13,8 +13,3 @@ libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/
 libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image7_16.bmp
 libreoffice-zotero-integration: image-file-in-usr-lib usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/icons/image7_26.bmp
 libreoffice-zotero-integration: jar-not-in-usr-share usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/Zotero.jar
-libreoffice-zotero-integration: jar-not-in-usr-share usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/external_jars/jackson-annotations-2.0.2.jar
-libreoffice-zotero-integration: jar-not-in-usr-share usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/external_jars/jackson-core-2.0.2.jar
-libreoffice-zotero-integration: jar-not-in-usr-share usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/external_jars/jackson-databind-2.0.2.jar
-libreoffice-zotero-integration: jar-not-in-usr-share usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/external_jars/jna.jar
-libreoffice-zotero-integration: jar-not-in-usr-share usr/lib/libreoffice/share/extensions/Zotero_OpenOffice_Integration/external_jars/platform.jar

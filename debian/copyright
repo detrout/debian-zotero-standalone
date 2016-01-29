@@ -448,6 +448,10 @@ Copyright: 2011 Michele Cane <michele.cane@gmail.com>
            2016 Sébastien Villemot <sebastien@debian.org>
 License: GPL-3+
 
+Files: debian/missing-sources/framework-*.js
+Copyright: 2010-2013 Erik Hetzner
+License: AGPL-3+
+
 License: AGPL-3+
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU Affero General Public License as published by the

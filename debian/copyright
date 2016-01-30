@@ -42,7 +42,9 @@ Files: modules/zotero/resource/csl-validator.js
 Copyright: 2003, 2004 David Tolpin, Davidashen
            1998, 1999, 2000 Thai Open Source Software Center Ltd and Clark Cooper
            2001, 2002, 2003, 2004, 2005, 2006 Expat maintainers.
-License: BSD-3-clause and Expat
+           2012 Simon Kornblith
+           2007-2012 by Frank Bennett, Bruce D'Arcus, Simon Kornblith, and Rintze Zelle
+License: AGPL-3+
 
 Files: modules/zotero/resource/q.js
 Copyright: 2009-2012 Kris Kowal
@@ -455,6 +457,28 @@ License: AGPL-3+
 Files: debian/missing-sources/tiny_mce_popup.js
 Copyright: 2009, 2011, Moxiecode Systems AB
 License: LGPL-2.1
+
+Files: debian/missing-sources/csl-validator.js/*
+Copyright: 2012 Simon Kornblith
+License: AGPL-3+
+
+Files: debian/missing-sources/csl-validator.js/deps/expat-2.1.0/*
+Copyright: 1998, 1999, 2000 Thai Open Source Software Center Ltd and Clark Cooper
+           2001, 2002, 2003, 2004, 2005, 2006 Expat maintainers
+License: Expat
+
+Files: debian/missing-sources/csl-validator.js/deps/rnv-1.7.10/*
+Copyright: 2003, 2004 David Tolpin, Davidashen
+License: BSD-3-clause
+
+Files: debian/missing-sources/csl-validator.js/deps/schema/*
+Copyright: 2007-2012 by Frank Bennett, Bruce D'Arcus, Simon Kornblith, and Rintze Zelle
+License: Expat
+Comment:
+ The headers say of the schema say only "Permission to freely use, copy and distribute",
+ which is not DFSG-compliant.
+ But the upstream authors agreed to relicense under MIT/Expat: see the discussion in
+ https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=775532
 
 License: AGPL-3+
  This program is free software; you can redistribute it and/or modify it

@@ -87,6 +87,9 @@ zotero-standalone-build source: source-is-missing modules/zotero/translators/The
 zotero-standalone-build source: source-is-missing modules/zotero/translators/Game Studies.js line length is 8513 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/translators/Journal of Extension.js line length is 8513 characters (>512)
 
+# The sources for this file are under debian/missing-sources/csl-validator.js/
+# (note that this is a directory!)
+zotero-standalone-build source: source-is-missing modules/zotero/resource/csl-validator.js line length is 30022 characters (>512)
 
 # The following are false positives from the test for minified javascript
 zotero-standalone-build source: source-is-missing modules/zotero/translators/A Contra Corriente.js line length is 691 characters (>512)
@@ -250,3 +253,8 @@ zotero-standalone-build source: source-is-missing modules/zotero/chrome/content/
 zotero-standalone-build source: source-is-missing modules/zotero/chrome/content/zotero/xpcom/xregexp/addons/unicode/unicode-base.js line length is 4188 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/chrome/content/zotero/xpcom/xregexp/addons/unicode/unicode-categories.js line length is 3919 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/chrome/content/zotero/xpcom/xregexp/addons/unicode/unicode-zotero.js line length is 545 characters (>512)
+zotero-standalone-build source: source-is-missing debian/missing-sources/csl-validator.js/test.js line length is 10627 characters (>512)
+
+# We don't care about the following, since we're not rebuilding from there
+zotero-standalone-build source: outdated-autotools-helper-file debian/missing-sources/csl-validator.js/deps/expat-2.1.0/conftools/config.guess 2011-05-11
+zotero-standalone-build source: outdated-autotools-helper-file debian/missing-sources/csl-validator.js/deps/expat-2.1.0/conftools/config.sub 2011-03-23

@@ -38,6 +38,10 @@ Files: modules/zotero/chrome/content/zotero/xpcom/citeproc.js
 Copyright: 2009-2010, Frank G. Bennett <biercenator@gmail.com>
 License: CPAL-1.0 or AGPL-3+
 
+Files: modules/zotero/chrome/skin/default/zotero/timeline/bundle.js
+Copyright: 2003-2005 The SIMILE Project
+License: BSD-3-clause
+
 Files: modules/zotero/resource/csl-validator.js
 Copyright: 2003, 2004 David Tolpin, Davidashen
            1998, 1999, 2000 Thai Open Source Software Center Ltd and Clark Cooper
@@ -479,6 +483,22 @@ Comment:
  which is not DFSG-compliant.
  But the upstream authors agreed to relicense under MIT/Expat: see the discussion in
  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=775532
+
+Files: debian/missing-sources/isbn.js
+       debian/missing-sources/typeSchemaData.js
+Copyright: 2006-2011 Center for History and New Media, George Mason University, Fairfax, Virginia, USA
+License: AGPL-3+
+
+Files: debian/missing-sources/tinymce-lang-en.js
+       debian/missing-sources/tinymce-themes-advanced-lang-en.js
+       debian/missing-sources/en_dlg.js
+Copyright: 2009, 2011, Moxiecode Systems AB
+License: LGPL-2.1
+
+Files: debian/missing-sources/bundle.js
+Copyright: 2003-2005 The SIMILE Project
+License: BSD-3-clause
+
 
 License: AGPL-3+
  This program is free software; you can redistribute it and/or modify it

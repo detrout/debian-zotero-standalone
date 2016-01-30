@@ -475,7 +475,7 @@ Files: debian/missing-sources/csl-validator.js/deps/schema/*
 Copyright: 2007-2012 by Frank Bennett, Bruce D'Arcus, Simon Kornblith, and Rintze Zelle
 License: Expat
 Comment:
- The headers say of the schema say only "Permission to freely use, copy and distribute",
+ The headers of the schema say only "Permission to freely use, copy and distribute",
  which is not DFSG-compliant.
  But the upstream authors agreed to relicense under MIT/Expat: see the discussion in
  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=775532

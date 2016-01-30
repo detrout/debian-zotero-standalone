@@ -1,3 +1,39 @@
+zotero-standalone-build (4.0.28.8+dfsg-1) unstable; urgency=medium
+
+  * New upstream release. (Closes: #795343, #805545)
+    Repacked to remove various non-DFSG-free stuff, including stuff under win/.
+  * Add missing source files for minified javascript code under
+    debian/missing-sources/. (Closes: #788277)
+    The file debian/source/lintian-overrides gives more details about the
+    status of the various files (and overrides some false positives).
+    Note that in the future it would be better to package csl-validator.js
+    separately.
+  * d/copyright: major overhaul.
+  * Adopt package, and add Benda Xu to Uploaders. (Closes: #800155)
+  * d/p/06_Max_Version.diff: update patch for iceweasel 44.
+  * For the libreoffice extension: do not use the prepackaged OXT, and build JAR
+    using javahelper.
+    + d/p/messagebox.patch: new patch.
+    + build-depend on ure, libjna-java, libjackson2-*-java.
+    + use jh_build for building the JAR.
+    + include special RegistrationHandler.classes file in JAR.
+    + d/libreoffice-zotero-integration.manifest: add RegistrationClassName
+      special field in manifest.
+  * d/rules:
+    + drop useless calls to debhelper with -a.
+    + filter out the new test/ subdir in xpi archive.
+    + simplify detection of Debian version using pkg-info.mk.
+    + add a get-orig-source rule that creates the DFSG-free tarball.
+  * d/control:
+    + Bump iceweasel dependency for zotero-standalone.
+    + Bump Standards-Version to 3.9.6, no changes needed.
+    + Add missing xpi:Breaks for xul-ext-zotero.
+    + Update Vcs-* fields. The git repository has been renamed to be identical
+      to the name of the source package.
+  * d/watch: update for +dfsg suffix mangling.
+
+ -- Sébastien Villemot <sebastien@debian.org>  Sat, 30 Jan 2016 23:16:06 +0100
+
 zotero-standalone-build (4.0.26.2-1) unstable; urgency=medium
 
   * New upstream release (Closes: #757610).

@@ -753,7 +753,7 @@ Zotero.Sync.Runner = new function () {
 			errors = [];
 		}
 		
-		errors = [this.parseSyncError(e) for each(e in errors)];
+		errors = errors.map(e => this.parseSyncError(e));
 		_errorsByLibrary = {};
 		
 		var primaryError = this.getPrimaryError(errors);
@@ -787,7 +787,7 @@ Zotero.Sync.Runner = new function () {
 	
 	
 	this.getPrimaryError = function (errors) {
-		errors = [this.parseSyncError(e) for each(e in errors)];
+		errors = errors.map(e => this.parseSyncError(e));
 		
 		// Set highest priority error as the primary (sync error icon)
 		var errorModes = {
@@ -1232,9 +1232,9 @@ Zotero.Sync.Server = new function () {
 		}
 		
 		Zotero.debug('Getting Zotero sync password');
-		var loginManager = Components.classes["@mozilla.org/login-manager;1"]
-								.getService(Components.interfaces.nsILoginManager);
 		try {
+			var loginManager = Components.classes["@mozilla.org/login-manager;1"]
+									.getService(Components.interfaces.nsILoginManager);
 			var logins = loginManager.findLogins({}, _loginManagerHost, null, _loginManagerRealm);
 		}
 		catch (e) {

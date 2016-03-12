@@ -79,74 +79,57 @@ Copyright: 2010, 2011, Sopheak Hean, University of Waikato, Faculty of Education
 License: GPL-3+
 
 Files: modules/zotero/translators/ACM?Digital?Library.js
-  modules/zotero/translators/Bloomberg.js
+  modules/zotero/translators/Foreign?Affairs.js
+Copyright: 2011, Sebastian Karcher and CHNM
+License: GPL-3+
+
+Files: modules/zotero/translators/Bloomberg.js
   modules/zotero/translators/Christian?Science?Monitor.js
   modules/zotero/translators/Financial?Times.js
-  modules/zotero/translators/Foreign?Affairs.js
   modules/zotero/translators/Huff?Post.js
   modules/zotero/translators/Library?Catalog?(Amicus).js
   modules/zotero/translators/Library?Catalog?(Encore).js
   modules/zotero/translators/Library?Catalog?(Mango).js
 Copyright: 2011, Sebastian Karcher and CHNM
+License: AGPL-3+
+
+Files: modules/zotero/translators/Ab?Imperio.js
+  modules/zotero/translators/Bookmarks.js
+  modules/zotero/translators/Matbugat.ru.js
+  modules/zotero/translators/ProQuest.js
+  modules/zotero/translators/Tatar?zamani.js
+  modules/zotero/translators/Tatknigafund.js
+  modules/zotero/translators/Twitter.js
+Copyright: 2009-2012, 2014, Avram Lyon, ajlyon@gmail.com
 License: GPL-3+
 
-Files: modules/zotero/translators/APN.ru.js
-  modules/zotero/translators/Ab?Imperio.js
-  modules/zotero/translators/Bookmarks.js
+Files: modules/zotero/translators/EurasiaNet.js
+  modules/zotero/translators/etatar.ru.js
+  modules/zotero/translators/feb-web.ru.js
+  modules/zotero/translators/LiveJournal.js
+  modules/zotero/translators/APN.ru.js
   modules/zotero/translators/Google?Blogs.js
   modules/zotero/translators/Google?Play.js
   modules/zotero/translators/IMDb.js
   modules/zotero/translators/Kommersant.js
   modules/zotero/translators/Library?Catalog?(BiblioCommons).js
   modules/zotero/translators/London?Review?of?Books.js
-  modules/zotero/translators/Matbugat.ru.js
   modules/zotero/translators/Paris?Review.js
-  modules/zotero/translators/ProQuest.js
   modules/zotero/translators/Radio?Liberty.js
   modules/zotero/translators/Readability.js
-  modules/zotero/translators/Tatar?zamani.js
-  modules/zotero/translators/Tatknigafund.js
   modules/zotero/translators/Tatpressa.ru.js
-  modules/zotero/translators/Twitter.js
   modules/zotero/translators/Zhurnalnyi?zal.js
   modules/zotero/translators/eLibrary.ru.js
-Copyright: 2009-2012, 2014, Avram Lyon, ajlyon@gmail.com
-License: GPL-3+
+Copyright: 2009-2014, Avram Lyon, ajlyon@gmail.com
+License: AGPL-3+
 
-Files: modules/zotero/translators/ASCE.js
-  modules/zotero/translators/American?Institute?of?Aeronautics?and?Astronautics.js
-  modules/zotero/translators/Atypon?Journals.js
-  modules/zotero/translators/BioOne.js
-  modules/zotero/translators/Edinburgh?University?Press?Journals.js
-  modules/zotero/translators/Harpers.js
-  modules/zotero/translators/INSPIRE.js
-  modules/zotero/translators/In?These?Times.js
-  modules/zotero/translators/MEDLINEnbib.js
-  modules/zotero/translators/Medium.js
-  modules/zotero/translators/NRC?Research?Press.js
-  modules/zotero/translators/OVID?Tagged.js
-  modules/zotero/translators/ProQuest?PolicyFile.js
-  modules/zotero/translators/R-Packages.js
-  modules/zotero/translators/RePEc?-?Econpapers.js
-  modules/zotero/translators/RePEc?-?IDEAS.js
-  modules/zotero/translators/Roll?Call.js
-  modules/zotero/translators/SAE?Papers.js
+Files: modules/zotero/translators/ProQuest?PolicyFile.js
   modules/zotero/translators/Slate.js
-  modules/zotero/translators/Taylor?and?Francis+NEJM.js
-  modules/zotero/translators/The?Atlantic.js
-  modules/zotero/translators/The?Daily?Beast.js
-  modules/zotero/translators/The?New?Republic.js
-  modules/zotero/translators/UpToDate?References.js
-  modules/zotero/translators/Vanity?Fair.js
-  modules/zotero/translators/VoxEU.js
-  modules/zotero/translators/Washington?Monthly.js
-  modules/zotero/translators/Wikimedia?Commons.js
   modules/zotero/translators/Wikisource.js
   modules/zotero/translators/ebrary.js
-  modules/zotero/translators/washingtonpost.com.js
   modules/zotero/translators/wsj.js
-  modules/zotero/translators/Der?Freitag.js
-Copyright: 2011-2014, Sebastian Karcher
+  modules/zotero/translators/WikiLeaks?PlusD.js
+Copyright: 2011-2016, Sebastian Karcher
 License: GPL-3+
 
 Files: modules/zotero/translators/A?Contra?Corriente.js
@@ -157,18 +140,9 @@ Files: modules/zotero/translators/A?Contra?Corriente.js
   modules/zotero/translators/OSTI?Energy?Citations.js
   modules/zotero/translators/WIPO.js
   modules/zotero/translators/DeGruyter.js
-Copyright: 2012, 2013, Sebastian Karcher an Avram Lyon
-License: AGPL-3+
-
-Files: modules/zotero/translators/Annual?Reviews.js
-  modules/zotero/translators/MetaLib.js
-  modules/zotero/translators/Microsoft?Academic?Search.js
-  modules/zotero/translators/Nature?Publishing?Group.js
-  modules/zotero/translators/Nuclear?Receptor?Signaling.js
-  modules/zotero/translators/Treesearch.js
-  modules/zotero/translators/Verniana-Jules?Verne?Studies.js
-  modules/zotero/translators/Wikipedia.js
-Copyright: 2012, Aurimas Vinckevicius
+  modules/zotero/translators/Reuters.js
+  modules/zotero/translators/XML?ContextObject.js
+Copyright: 2010-2013, Sebastian Karcher an Avram Lyon
 License: AGPL-3+
 
 Files: modules/zotero/translators/BOCC.js
@@ -186,7 +160,6 @@ Copyright: 2010, Florian Ziche, ziche@noos.fr
 License: GPL-3+
 
 Files: modules/zotero/translators/Blaetter.js
-  modules/zotero/translators/Die?Zeit.js
   modules/zotero/translators/Le?Monde?Diplomatique_de.js
   modules/zotero/translators/Potsdamer?Neueste?Nachrichten.js
   modules/zotero/translators/Spiegel?Online.js
@@ -220,24 +193,37 @@ Files: modules/zotero/translators/Bundesgesetzblatt.js
   modules/zotero/translators/semantics?Visual?Library.js
   modules/zotero/translators/wiso.js
   modules/zotero/translators/zbMATH.js
-Copyright: 2014, 2015, Philipp Zumstein
+  modules/zotero/translators/BioMed?Central.js
+  modules/zotero/translators/Die?Zeit.js
+  modules/zotero/translators/Fachportal?Padagogik.js
+  modules/zotero/translators/Microbiology?Society?Journals.js
+Copyright: 2014-2016 Philipp Zumstein
 License: AGPL-3+
 
-Files: modules/zotero/translators/CNKI.js
+Files: modules/zotero/translators/Annual?Reviews.js
+  modules/zotero/translators/MetaLib.js
+  modules/zotero/translators/Microsoft?Academic?Search.js
+  modules/zotero/translators/Nature?Publishing?Group.js
+  modules/zotero/translators/Nuclear?Receptor?Signaling.js
+  modules/zotero/translators/Treesearch.js
+  modules/zotero/translators/Verniana-Jules?Verne?Studies.js
+  modules/zotero/translators/Wikipedia.js
+  modules/zotero/translators/CNKI.js
   modules/zotero/translators/Library?Catalog?(Polaris).js
   modules/zotero/translators/RSC?Publishing.js
   modules/zotero/translators/SFU?IPinCH.js
   modules/zotero/translators/Springer?Science+Business?Media.js
-Copyright: 2010, 2011, 2013, 2015, Aurimas Vinckevicius
-License: GPL-3+
+Copyright: 2010-2015, Aurimas Vinckevicius
+License: AGPL-3+
 
 Files: modules/zotero/translators/CSV.js
 Copyright: 2014, Philipp Zumstein, Aurimas Vinckevicius
 License: AGPL-3+
 
 Files: modules/zotero/translators/Cell?Press.js
-Copyright: 2011, Sebastian Karcher and Aurimas Vinckevicius
-License: GPL-3+
+       modules/zotero/translators/eLife.js
+Copyright: 2011-2016, Sebastian Karcher and Aurimas Vinckevicius
+License: AGPL-3+
 
 Files: modules/zotero/translators/DEPATISnet.js
 Copyright: 2014, Klaus Flittner
@@ -262,13 +248,6 @@ License: AGPL-3+
 
 Files: modules/zotero/translators/Embedded?Metadata.js
 Copyright: 2011, Avram Lyon and the Center for History and New Media
-License: AGPL-3+
-
-Files: modules/zotero/translators/EurasiaNet.js
-  modules/zotero/translators/etatar.ru.js
-  modules/zotero/translators/feb-web.ru.js
-  modules/zotero/translators/LiveJournal.js
-Copyright: 2011, Avram Lyon, ajlyon@gmail.com
 License: AGPL-3+
 
 Files: modules/zotero/translators/Evernote.js
@@ -362,7 +341,7 @@ Copyright: 2011, Tim Sherratt (tim@discontents.com.au, @wragge)
 License: AGPL-3+
 
 Files: modules/zotero/translators/OZON.ru.js
-Copyright: 2012, Victor Rybynok, v.rybynok@gmail.com
+Copyright: 2015 Mikhail Akimov
 License: AGPL-3+
 
 Files: modules/zotero/translators/Optical?Society?of?America.js
@@ -392,11 +371,6 @@ License: GPL-3+
 Files: modules/zotero/translators/RDF.js
 Copyright: 2011, 2012, Center for History and New Media
 License: AGPL-3+
-
-Files: modules/zotero/translators/Reuters.js
-       modules/zotero/translators/XML?ContextObject.js
-Copyright: 2010-2013, Avram Lyon, ajlyon@gmail.com, Sebastian Karcher
-License: GPL-3+
 
 Files: modules/zotero/translators/SAGE?Knowledge.js
   modules/zotero/translators/SIRS?Knowledge?Source.js
@@ -441,6 +415,23 @@ License: AGPL-3+
 Files: modules/zotero/translators/digibib.net.js
 Copyright: 2012, hbz NRW (http:www.hbz-nrw.de/)
 License: GPL-3+
+
+Files: modules/zotero/translators/Notre?Dame?Philosophical?Reviews.js
+Copyright: 2016 Emiliano Heyns
+License: AGPL-3+
+
+Files: modules/zotero/translators/PLoS?Journals.js
+Copyright: 2012-2016 Rintze Zelle, Michael Berkowitz, and Sebastian Karcher
+License: AGPL-3+
+
+Files: modules/zotero/translators/Polygon.js
+       modules/zotero/translators/Rock??Paper??Shotgun.js
+Copyright: 2015 czar
+License: AGPL-3+
+
+Files: modules/zotero/translators/Retsinformation.js
+Copyright: 2016 Roald Frøsig
+License: AGPL-3+
 
 Files: update-packaging/common.sh
        update-packaging/make_full_update.sh

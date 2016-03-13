@@ -1,3 +1,16 @@
+zotero-standalone-build (4.0.29.2+dfsg-1) unstable; urgency=medium
+
+  * Imported Upstream version 4.0.29.2+dfsg. (Closes: #817911)
+  * d/copyright: reflect upstream changes.
+  * d/source/lintian-overrides: update for minified javascript.
+  * d/p/06_Max_Version.diff: update for Firefox 45.
+  * d/control:
+    + replace iceweasel dependency by firefox-esr | firefox.
+    + update Vcs-Browser to be the same as Vcs-Git.
+    + bump Standards-Version to 3.9.7, no changes needed.
+
+ -- Sébastien Villemot <sebastien@debian.org>  Sun, 13 Mar 2016 17:29:05 +0100
+
 zotero-standalone-build (4.0.28.8+dfsg-1) unstable; urgency=medium
 
   * New upstream release. (Closes: #795343, #805545)

@@ -10,7 +10,7 @@ Build-Depends: debhelper (>= 9.0.0), zip, unzip, mozilla-devscripts (>= 0.22),
                libjackson2-databind-java
 Standards-Version: 3.9.6
 Homepage: http://www.zotero.org/
-Vcs-Browser: https://anonscm.debian.org/gitweb/?p=collab-maint/zotero-standalone-build.git;a=summary
+Vcs-Browser: https://anonscm.debian.org/git/collab-maint/zotero-standalone-build.git
 Vcs-Git: https://anonscm.debian.org/git/collab-maint/zotero-standalone-build.git
 
 Package: zotero-standalone

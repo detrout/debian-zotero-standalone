@@ -15,7 +15,7 @@ Vcs-Git: https://anonscm.debian.org/git/collab-maint/zotero-standalone-build.git
 
 Package: zotero-standalone
 Architecture: all
-Depends: iceweasel (>= 38), ${misc:Depends}
+Depends: firefox-esr (>= 38) | firefox (>= 38), ${misc:Depends}
 Enhances: libreoffice-libreoffice-integration
 Description: organize and share your research sources
  Zotero helps you collect, manage, and cite your research sources.
@@ -27,7 +27,7 @@ Description: organize and share your research sources
  resources available in hundreds of databases, library catalogs and the web.
  .
  This package contains the standalone version of Zotero which does not
- require any Iceweasel/Firefox browser.
+ require any Firefox browser.
 
 Package: xul-ext-zotero
 Architecture: all
@@ -36,7 +36,7 @@ Recommends: ${xpi:Recommends}
 Provides: ${xpi:Provides}
 Enhances: ${xpi:Enhances}
 Breaks: ${xpi:Breaks}
-Description: Iceweasel extension to organize and share your research sources
+Description: Firefox extension to organize and share your research sources
  Zotero helps you collect, manage, and cite your research sources.
  .
  Zotero allows you to store your libraries online, so that they can be

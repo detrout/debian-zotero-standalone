@@ -128,7 +128,7 @@ zotero-standalone-build source: source-is-missing modules/zotero/translators/Cit
 zotero-standalone-build source: source-is-missing modules/zotero/translators/CiteULike.js line length is 919 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/translators/Code4Lib Journal.js line length is 643 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/translators/Columbia University Press.js line length is 949 characters (>512)
-zotero-standalone-build source: source-is-missing modules/zotero/translators/Copernicus.js line length is 1332 characters (>512)
+zotero-standalone-build source: source-is-missing modules/zotero/translators/Copernicus.js line length is 1329 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/translators/Cornell University Press.js line length is 1561 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/translators/DART-Europe.js line length is 1834 characters (>512)
 zotero-standalone-build source: source-is-missing modules/zotero/translators/DEPATISnet.js line length is 979 characters (>512)

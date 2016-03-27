@@ -1,3 +1,12 @@
+zotero-standalone-build (4.0.29.5+dfsg-1) unstable; urgency=medium
+
+  * Imported Upstream version 4.0.29.5+dfsg
+  * d/copyright: reflect upstream changes.
+  * 06_Max_Version.diff: no more maximum Firefox version for standalone zotero.
+  * d/s/lintian-overrides: update list of false positive for minified JS.
+
+ -- Sébastien Villemot <sebastien@debian.org>  Sun, 27 Mar 2016 21:03:20 +0200
+
 zotero-standalone-build (4.0.29.2+dfsg-1) unstable; urgency=medium
 
   * Imported Upstream version 4.0.29.2+dfsg. (Closes: #817911)

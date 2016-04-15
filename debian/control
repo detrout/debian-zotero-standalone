@@ -15,7 +15,7 @@ Vcs-Git: https://anonscm.debian.org/git/collab-maint/zotero-standalone-build.git
 
 Package: zotero-standalone
 Architecture: all
-Depends: firefox-esr (>= 38) | firefox (>= 38), ${misc:Depends}
+Depends: iceweasel (>= 38) | firefox-esr (>= 38) | firefox (>= 38), ${misc:Depends}
 Enhances: libreoffice-libreoffice-integration
 Description: organize and share your research sources
  Zotero helps you collect, manage, and cite your research sources.

@@ -1,3 +1,11 @@
+zotero-standalone-build (4.0.29.5+dfsg-1~bpo8+1) jessie-backports; urgency=medium
+
+  * Rebuild for jessie-backports.
+  * d/control: add iceweasel as alternative for dependency (firefox not yet
+    in jessie).
+
+ -- Sébastien Villemot <sebastien@debian.org>  Fri, 15 Apr 2016 11:09:28 +0200
+
 zotero-standalone-build (4.0.29.5+dfsg-1) unstable; urgency=medium
 
   * Imported Upstream version 4.0.29.5+dfsg

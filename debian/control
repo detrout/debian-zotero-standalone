@@ -27,7 +27,7 @@ Description: organize and share your research sources
  resources available in hundreds of databases, library catalogs and the web.
  .
  This package contains the standalone version of Zotero which does not
- require any Firefox browser.
+ run within the Firefox browser (though it still uses its engine).
 
 Package: xul-ext-zotero
 Architecture: all

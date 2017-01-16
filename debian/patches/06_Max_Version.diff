@@ -4,13 +4,13 @@ Forwarded: not-needed
 Last-Update: 2016-03-27
 ---
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
---- a/assets/application.ini
-+++ b/assets/application.ini
+--- a/zotero-standalone-build/assets/application.ini
++++ b/zotero-standalone-build/assets/application.ini
 @@ -8,7 +8,7 @@ ID=zotero@chnm.gmu.edu
  
  [Gecko]
- MinVersion=38.0
--MaxVersion=41.*
+ MinVersion=45.0
+-MaxVersion=50.*
 +MaxVersion=*
  
  [XRE]

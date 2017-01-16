@@ -4,8 +4,8 @@ Forwarded: no
 Last-Update: 2015-12-07
 ---
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
---- a/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/Document.java
-+++ b/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/Document.java
+--- a/zotero-standalone-build/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/Document.java
++++ b/zotero-standalone-build/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/Document.java
 @@ -142,10 +142,6 @@ public class Document {
          XWindowPeer xWindow = (XWindowPeer) UnoRuntime.queryInterface(XWindowPeer.class, frame.getContainerWindow());
          XMessageBoxFactory xToolkit = (XMessageBoxFactory) UnoRuntime.queryInterface(XMessageBoxFactory.class, xWindow.getToolkit());
@@ -35,8 +35,8 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 -}
 \ No newline at end of file
 +}
---- a/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/SaveEventListener.java
-+++ b/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/SaveEventListener.java
+--- a/zotero-standalone-build/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/SaveEventListener.java
++++ b/zotero-standalone-build/modules/zotero-libreoffice-integration/build/source/org/zotero/integration/ooo/comp/SaveEventListener.java
 @@ -3,6 +3,7 @@ package org.zotero.integration.ooo.comp;
  import java.util.Hashtable;
  

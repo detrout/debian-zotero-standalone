@@ -5,8 +5,8 @@ Last-Updated: 2013-05-20
 
 Index: zotero-standalone-build/modules/zotero/chrome/content/zotero/preferences/preferences_search.xul
 ===================================================================
---- zotero-standalone-build.orig/modules/zotero/chrome/content/zotero/preferences/preferences_search.xul	2013-05-16 22:09:51.000000000 +0200
-+++ zotero-standalone-build/modules/zotero/chrome/content/zotero/preferences/preferences_search.xul	2013-05-16 22:10:22.000000000 +0200
+--- a/zotero/chrome/content/zotero/preferences/preferences_search.xul	2013-05-16 22:09:51.000000000 +0200
++++ b/zotero/chrome/content/zotero/preferences/preferences_search.xul	2013-05-16 22:10:22.000000000 +0200
 @@ -65,9 +65,9 @@
  			
  			<separator class="thin"/>

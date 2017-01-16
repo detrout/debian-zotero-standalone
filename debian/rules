@@ -44,19 +44,44 @@ override_dh_auto_clean:
 	rm -rf staging
 	rm -f xul-ext-zotero.xpi
 
+# Update the following variables for each new upstream release
+COMMIT_VERSION=4.0.29.16+dfsg
+Z_COMMIT=55ee55ed7b
+ZB_COMMIT=171117f0c7
+ZSB_COMMIT=0e725a7e9c
+
 get-orig-source:
+	if [ "$(DEB_VERSION_UPSTREAM)" != "$(COMMIT_VERSION)" ]; then \
+		echo "Debian version and commit version do not match."; \
+		exit 1; \
+	fi
+
 	rm -rf zotero-standalone-build-$(DEB_VERSION_UPSTREAM)
-	git clone https://github.com/zotero/zotero-standalone-build.git zotero-standalone-build-$(DEB_VERSION_UPSTREAM)
-	# Checkout right commit and submodules, and remove non-DFSG compliant files.
-	cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM) && \
-		git checkout `echo $(DEB_VERSION_UPSTREAM) | sed 's/\+dfsg\d*//'` && \
+
+	# Zotero
+	git clone https://github.com/zotero/zotero.git zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero
+	cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero && \
+		git checkout $(Z_COMMIT) && \
+		git submodule update --init --recursive
+
+	# Zotero-build
+	git clone https://github.com/zotero/zotero-build.git zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero-build
+	cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero-build/ && \
+		git checkout $(ZB_COMMIT) && \
+		git submodule update --init --recursive
+
+	# Zotero-standalone-build
+	git clone https://github.com/zotero/zotero-standalone-build.git zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero-standalone-build
+	cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero-standalone-build/ && \
+		git checkout $(ZSB_COMMIT) && \
 		git submodule update --init --recursive && \
 		git submodule deinit modules/zotero-word-for-mac-integration && \
 		git submodule deinit modules/zotero-word-for-windows-integration && \
-		rm -rf win/ mac/* linux/xulrunner-stub-* modules/zotero-libreoffice-integration/build/lib/*.jar modules/zotero-libreoffice-integration/install/Zotero_OpenOffice_Integration.oxt
+		rm -rf win/ mac/* linux/updater-* modules/zotero-libreoffice-integration/build/lib/*.jar modules/zotero-libreoffice-integration/install/Zotero_OpenOffice_Integration.oxt
+
 	# Pack reproducible orig tarball
 	tar -caf zotero-standalone-build_$(DEB_VERSION_UPSTREAM).orig.tar.xz \
 		--format=pax --owner=root --group=root --mode='a=rX,u+w' --sort=name --exclude-vcs \
-		--mtime=@`cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM) && git log -n1 --format=%ct` \
+		--mtime=@`cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero-standalone-build/ && git log -n1 --format=%ct` \
 		zotero-standalone-build-$(DEB_VERSION_UPSTREAM)
 	rm -rf zotero-standalone-build-$(DEB_VERSION_UPSTREAM)

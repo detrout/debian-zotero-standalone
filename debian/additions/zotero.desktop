@@ -2,6 +2,7 @@
 Name=Zotero
 GenericName=Bibliography Editor
 Comment=Manage your bibliography
+Keywords=bibliography;research;citation;
 Exec=zotero
 Icon=zotero
 Terminal=false

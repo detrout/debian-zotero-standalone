@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Sébastien Villemot <sebastien@debian.org>
 Uploaders: Benda Xu <heroxbd@gentoo.org>
 Build-Depends: debhelper (>= 10), zip, unzip, mozilla-devscripts (>= 0.22),
-               javahelper, default-jdk,
+               javahelper, default-jdk, rsync,
                ure, libreoffice-java-common, libjna-java,
                libjackson2-core-java, libjackson2-annotations-java,
                libjackson2-databind-java

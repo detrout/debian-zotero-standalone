@@ -1,3 +1,22 @@
+zotero-standalone-build (4.0.29.16+dfsg-1) unstable; urgency=medium
+
+  * New upstream version 4.0.29.16.
+    + Upstream has ceased to use a separate version numbering for
+      zotero-standalone-build. Therefore we now follow the version number of
+      the zotero extension itself, and pin down specific git commits for the
+      separate zotero-build and zotero-standalone-build repositories.
+    + Compatible with Firefox 50. (Closes: #845943)
+  * d/copyright: reflect upstream changes.
+  * d/rules: new get-orig-source, for new source package layout.
+  * d/control: add rsync in build dependencies.
+  * d/control: bump minimal required Firefox version to 45.
+  * d/p/firefox-48.patch: drop patch, no longer needed.
+  * Bump to debhelper compat level 10.
+  * d/watch: update to format v4; point directly to zotero github.
+  * Add keywords to zotero.desktop.
+
+ -- Sébastien Villemot <sebastien@debian.org>  Tue, 17 Jan 2017 19:04:05 +0100
+
 zotero-standalone-build (4.0.29.5+dfsg-2) unstable; urgency=medium
 
   * d/p/firefox-48.patch: new patch, fixes startup issue with Firefox 48.

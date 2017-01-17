@@ -12,25 +12,22 @@ export JAVA_HOME=/usr/lib/jvm/default-java
 	dh $@ --with xul-ext,javahelper
 
 override_dh_auto_build:
-	./build.sh -p l -v ${DEB_VERSION} -d
+	# Create the XPI file
+	mkdir -p zotero-build/xpi/build/
+	cp -a zotero zotero-build/xpi/build/
+	./zotero-build/xpi/build_xpi_4.0 zotero
 
-	# Create the XPI file, filtering out the test subdirectory
-	cp -a modules/zotero modules/zotero.new
-	rm -rf modules/zotero.new/test
-	xpi-pack modules/zotero.new xul-ext-zotero.xpi
-	rm -rf modules/zotero.new
+	# Build the standalone package
+	./zotero-standalone-build/build.sh -p l -s -f $$(pwd)/zotero-build/xpi/build/zotero-build.xpi
 
 override_jh_build:
-	jh_build -N staging/zotero-libreoffice-integration/build/oxt/Zotero.jar staging/zotero-libreoffice-integration/build/source
+	jh_build -N zotero-standalone-build/modules/zotero-libreoffice-integration/build/oxt/Zotero.jar zotero-standalone-build/modules/zotero-libreoffice-integration/build/source
 	# Add the RegistrationHandler.classes file
-	jar uf staging/zotero-libreoffice-integration/build/oxt/Zotero.jar -C staging/zotero-libreoffice-integration/build/source org/zotero/integration/ooo/comp/RegistrationHandler.classes
+	jar uf zotero-standalone-build/modules/zotero-libreoffice-integration/build/oxt/Zotero.jar -C zotero-standalone-build/modules/zotero-libreoffice-integration/build/source org/zotero/integration/ooo/comp/RegistrationHandler.classes
 
 override_dh_auto_install:
-	rm -f staging/zotero-standalone/COPYING
-	rm -f staging/zotero-standalone/xul-ext/zotero-standalone/COPYING
-	rm -f staging/zotero-standalone/xul-ext/zotero-standalone/resource/tinymce/license.txt
-	rm -f staging/zotero-libreoffice-integration/COPYING
-	install-xpi -p xul-ext-zotero -r xul-ext-zotero.xpi
+	rm -f zotero-standalone-build/staging/zotero-standalone/COPYING
+	install-xpi -p xul-ext-zotero -r zotero-build/xpi/build/zotero-build.xpi
 
 # We don't want to act on the jar in zotero-standalone (which is codeless)
 override_jh_manifest:
@@ -41,8 +38,9 @@ override_jh_depends:
 	jh_depends -plibreoffice-zotero-integration
 
 override_dh_auto_clean:
-	rm -rf staging
-	rm -f xul-ext-zotero.xpi
+	rm -rf zotero-build/xpi/build/
+	rm -rf zotero-standalone-build/staging zotero-standalone-build/dist
+	rm -f zotero-standalone-build/modules/zotero-libreoffice-integration/build/oxt/Zotero.jar
 
 # Update the following variables for each new upstream release
 COMMIT_VERSION=4.0.29.16+dfsg

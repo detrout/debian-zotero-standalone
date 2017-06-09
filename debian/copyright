@@ -1,4 +1,4 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Zotero Standalone Build
 Upstream-Contact: Center for History and New Media, George Mason University, Fairfax, Virginia, USA <chnm@gmu.edu>
 Source: https://github.com/zotero/zotero-standalone-build

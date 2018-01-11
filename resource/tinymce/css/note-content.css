@@ -1,0 +1,7 @@
+blockquote {
+	margin-top: 1.5em;
+	margin-bottom: 1.5em;
+	margin-left: 1em;
+	padding-left: .75em;
+	border-left: 3px solid lightblue;
+}

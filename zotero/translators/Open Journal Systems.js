@@ -9,7 +9,7 @@
 	"inRepository": true,
 	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2016-08-18 20:06:17"
+	"lastUpdated": "2017-06-18 22:34:25"
 }
 
 function detectWeb(doc, url) {
@@ -27,6 +27,30 @@ function doWeb(doc, url) {
 	trans.setDocument(doc);
 
 	trans.setHandler('itemDone', function(obj, item) {
+		if (!item.itemType) {
+			item.itemType = "journalArticle";
+		}
+		
+		if (!item.title) {
+			item.title = doc.getElementById('articleTitle');
+		}
+		
+		if (item.creators.length==0) {
+			var authorString = doc.getElementById("authorString");
+			if (authorString) {
+				var authorsList = authorString.textContent.split(',');
+				for (var i=0; i<authorsList.length; i++) {
+					item.creators.push(ZU.cleanAuthor(authorsList[i], "author"));
+				}
+		
+			}
+		}
+		
+		var doiNode = doc.getElementById('pub-id::doi');
+		if (!item.DOI && doiNode) {
+			item.DOI = doiNode.textContent;
+		}
+		
 		//abstract is supplied in DC:description, so it ends up in extra
 		//abstractNote is pulled from description, which is same as title
 		item.abstractNote = item.extra;
@@ -52,57 +76,6 @@ function doWeb(doc, url) {
 }
 /** BEGIN TEST CASES **/
 var testCases = [
-	{
-		"type": "web",
-		"url": "http://cab.unime.it/journals/index.php/AAPP/article/view/AAPP.901A1",
-		"items": [
-			{
-				"itemType": "journalArticle",
-				"title": "A framework of coopetitive games: Applications to the Greek crisis",
-				"creators": [
-					{
-						"firstName": "David",
-						"lastName": "Carfì",
-						"creatorType": "author"
-					},
-					{
-						"firstName": "Daniele",
-						"lastName": "Schilirò",
-						"creatorType": "author"
-					}
-				],
-				"date": "2012/06/08",
-				"DOI": "10.1478/AAPP.901A1",
-				"ISSN": "1825-1242",
-				"abstractNote": "In the present work we propose an original analytical model of coopetitive game. We shall apply this analytical model of coopetition (based on normal form game theory) to the Greek crisis, while conceiving this game theory model at a macro level. We construct two realizations of such model, trying to represent possible realistic macro-economic scenarios of the Germany-Greek strategic interaction. We shall suggest - after a deep and complete study of the two samples - feasible transferable utility solutions in a properly coopetitive perspective for the divergent interests which drive the economic policies in the euro area.",
-				"issue": "1",
-				"language": "en",
-				"libraryCatalog": "cab.unime.it",
-				"publicationTitle": "Atti della Accademia Peloritana dei Pericolanti - Classe di Scienze Fisiche, Matematiche e Naturali",
-				"rights": "Copyright (c) 2015 AAPP | Physical, Mathematical, and Natural Sciences",
-				"shortTitle": "A framework of coopetitive games",
-				"url": "http://cab.unime.it/journals/index.php/AAPP/article/view/AAPP.901A1",
-				"volume": "90",
-				"attachments": [
-					{
-						"title": "Full Text PDF",
-						"mimeType": "application/pdf"
-					},
-					{
-						"title": "Snapshot"
-					}
-				],
-				"tags": [
-					"Games and economics",
-					"competition",
-					"cooperation",
-					"coopetition"
-				],
-				"notes": [],
-				"seeAlso": []
-			}
-		]
-	},
 	{
 		"type": "web",
 		"url": "http://journals.linguisticsociety.org/elanguage/dad/article/view/362.html",
@@ -183,16 +156,16 @@ var testCases = [
 						"creatorType": "author"
 					}
 				],
-				"date": "19/11/2013",
+				"date": "2013/11/19",
 				"DOI": "10.2218/ijdc.v8i2.263",
 				"ISSN": "1746-8256",
-				"abstractNote": "Academic librarians are increasingly engaging in data curation by providing infrastructure (e.g., institutional repositories) and offering services (e.g., data management plan consultations) to support the management of research data on their campuses. Efforts to develop these resources may benefit from a greater understanding of disciplinary differences in research data management needs. After conducting a survey of data management practices and perspectives at our research university, we categorized faculty members into four research domains—arts and humanities, social sciences, medical sciences, and basic sciences—and analyzed variations in their patterns of survey responses. We found statistically significant differences among the four research domains for nearly every survey item, revealing important disciplinary distinctions in data management actions, attitudes, and interest in support services. Serious consideration of both the similarities and dissimilarities among disciplines will help guide academic librarians and other data curation professionals in developing a range of data-management services that can be tailored to the unique needs of different scholarly researchers.",
+				"abstractNote": "Academic librarians are increasingly engaging in data curation by providing infrastructure (e.g., institutional repositories) and offering services (e.g., data management plan consultations) to support the management of research data on their campuses. Efforts to develop these resources may benefit from a greater understanding of disciplinary differences in research data management needs. After conducting a survey of data management practices and perspectives at our research university, we categorized faculty members into four research domainsâ€”arts and humanities, social sciences, medical sciences, and basic sciencesâ€”and analyzed variations in their patterns of survey responses. We found statistically significant differences among the four research domains for nearly every survey item, revealing important disciplinary distinctions in data management actions, attitudes, and interest in support services. Serious consideration of both the similarities and dissimilarities among disciplines will help guide academic librarians and other data curation professionals in developing a range of data-management services that can be tailored to the unique needs of different scholarly researchers.",
 				"issue": "2",
 				"language": "en",
 				"libraryCatalog": "www.ijdc.net",
 				"pages": "5-26",
 				"publicationTitle": "International Journal of Digital Curation",
-				"rights": "Copyright for papers and articles published in this journal is retained by the authors, with first publication rights granted to the University of Edinburgh. It is a condition of publication that authors license their paper or article under a  Creative Commons Attribution Licence .",
+				"rights": "Copyright (c)",
 				"url": "http://www.ijdc.net/index.php/ijdc/article/view/8.2.5",
 				"volume": "8",
 				"attachments": [
@@ -205,51 +178,6 @@ var testCases = [
 					}
 				],
 				"tags": [],
-				"notes": [],
-				"seeAlso": []
-			}
-		]
-	},
-	{
-		"type": "web",
-		"url": "http://acontracorriente.chass.ncsu.edu/index.php/acontracorriente/article/view/174",
-		"items": [
-			{
-				"itemType": "journalArticle",
-				"title": "\"La Huelga de los Conventillos\", Buenos Aires, Nueva Pompeya, 1936. Un aporte a los estudios sobre género y clase",
-				"creators": [
-					{
-						"firstName": "Verónica",
-						"lastName": "Norando",
-						"creatorType": "author"
-					},
-					{
-						"firstName": "Ludmila",
-						"lastName": "Scheinkman",
-						"creatorType": "author"
-					}
-				],
-				"date": "2011",
-				"ISSN": "1548-7083",
-				"abstractNote": "Este trabajo se propone realizar un análisis de las relaciones de género y clase a través de un estudio de caso: la “Huelga de los Conventillos” de la fábrica textil Gratry en 1936, que se extendió por más de tres meses, pasando casi inadvertida, sin embargo, para la investigación histórica. Siendo la textil una rama de industria con una mayoría de mano de obra femenina, el caso de la casa Gratry, donde el 60% de los 800 obreros eran mujeres, aparece como ejemplar para la observación de la actividad de las mujeres en conflicto. En el trabajo se analiza el rol de las trabajadoras en la huelga, su participación política, sus formas de organización y resistencia, haciendo eje en las determinaciones de género y de clase que son abordadas de manera complementaria e interrelacionada, así como el complejo entramado de tensiones y solidaridades que éstas generan. De éste modo, se pretende ahondar en la compleja conformación de una identidad obrera femenina, a la vez que se discute con aquella mirada historiográfica tradicional que ha restado importancia a la participación de la mujer en el conflicto social. Esto se realizará a través de la exploración de una serie de variables: las relaciones inter-género e inter-clase (fundamentalmente el vínculo entre las trabajadoras y la patronal masculina), inter-género e intra-clase (la relación entre trabajadoras y trabajadores), intra-género e inter-clase (los lazos entre las trabajadoras y las vecinas comerciantes del barrio), intra-género e intra-clase (relaciones de solidaridad entre trabajadoras en huelga, y de antagonismo entre huelguistas y “carneras”). Para ello se trabajó un corpus documental que incluye información de tipo cuantitativa (las estadísticas del Boletín Informativo del Departamento Nacional del Trabajo), y cualitativa: periódicos obreros –fundamentalmente El Obrero Textil, órgano gremial de la Unión Obrera Textil, Semanario de la CGT-Independencia (órgano de la Confederación General del Trabajo (CGT)-Independencia) y La Vanguardia (periódico del Partido Socialista), entre otros, y entrevistas orales a vecinas de Nueva Pompeya y familiares de trabajadoras de la fábrica Gratry. Se desarrollará una metodología cuali-cuantitativa para el cruce de estas fuentes.",
-				"issue": "1",
-				"itemID": "AC174",
-				"libraryCatalog": "Open Journal Systems",
-				"pages": "1–37",
-				"publicationTitle": "A Contracorriente",
-				"url": "http://acontracorriente.chass.ncsu.edu/index.php/acontracorriente/article/view/174",
-				"volume": "9",
-				"attachments": [
-					{
-						"title": "Snapshot"
-					}
-				],
-				"tags": [
-					"huelga",
-					"relaciones de género",
-					"trabajadores",
-					"trabajadroras"
-				],
 				"notes": [],
 				"seeAlso": []
 			}
@@ -337,11 +265,11 @@ var testCases = [
 				"issue": "1",
 				"language": "en",
 				"libraryCatalog": "www.mediaesthetics.org",
-				"publicationTitle": "mediaesthetics - Journal of Poetics of Audiovisual Images",
+				"publicationTitle": "mediaesthetics – Journal of Poetics of Audiovisual Images",
 				"rights": "Copyright (c) 2016 David Gaertner",
 				"shortTitle": "World War II in American Movie Theatres from 1942-45",
 				"url": "http://www.mediaesthetics.org/index.php/mae/article/view/50",
-				"volume": "0",
+				"volume": "1",
 				"attachments": [
 					{
 						"title": "Snapshot"
@@ -374,6 +302,7 @@ var testCases = [
 				"issue": "1",
 				"language": "de",
 				"libraryCatalog": "0277.ch",
+				"pages": "11-17",
 				"publicationTitle": "027.7 Zeitschrift für Bibliothekskultur / Journal for Library Culture",
 				"rights": "Copyright (c) 2016 027.7 Zeitschrift für Bibliothekskultur / Journal for Library Culture",
 				"url": "http://0277.ch/ojs/index.php/cdrs_0277/article/view/101",
@@ -677,7 +606,7 @@ var testCases = [
 	},
 	{
 		"type": "web",
-		"url": "http://www.ajol.info/index.php/thrb/article/view/63347",
+		"url": "https://www.ajol.info/index.php/thrb/article/view/63347",
 		"items": [
 			{
 				"itemType": "journalArticle",
@@ -728,7 +657,7 @@ var testCases = [
 				"libraryCatalog": "www.ajol.info",
 				"publicationTitle": "Tanzania Journal of Health Research",
 				"rights": "Copyright for articles published in this journal is retained by the journal.",
-				"url": "http://www.ajol.info/index.php/thrb/article/view/63347",
+				"url": "https://www.ajol.info/index.php/thrb/article/view/63347",
 				"volume": "13",
 				"attachments": [
 					{
@@ -746,6 +675,50 @@ var testCases = [
 					"malaria",
 					"prevention",
 					"treatment"
+				],
+				"notes": [],
+				"seeAlso": []
+			}
+		]
+	},
+	{
+		"type": "web",
+		"url": "http://ejournals.library.vanderbilt.edu/ojs/index.php/ameriquests/article/view/220",
+		"items": [
+			{
+				"itemType": "journalArticle",
+				"title": "Open Journal Systems",
+				"creators": [
+					{
+						"firstName": "Earl E.",
+						"lastName": "Fitz",
+						"creatorType": "author"
+					}
+				],
+				"DOI": "10.15695/amqst.v8i1.220",
+				"abstractNote": "Historically, Canadian literature has been chary of entering too far into the new discipline of inter-American literary study.  Rightly concerned about the danger of blurring its identity as a distinctive national literature (one made up, as is well known, of two great strands, the French and the English), Canadian writing has, however, come of age, both nationally and internationally.  One dramatic aspect of this transformation is that we now have mounting evidence that both English and French Canadian writers are actively engaging with the literatures and cultures of their hemispheric neighbors.  By extending the methodologies of Comparative Literature to the inter-American paradigm, Canadian writers, critics, and literary historians are finding ways to maintain their status as members of a unique and under-appreciated national literature while also entering into the kinds of comparative studies that demonstrate their New World ties as well.",
+				"libraryCatalog": "ejournals.library.vanderbilt.edu",
+				"url": "http://ejournals.library.vanderbilt.edu/ojs/index.php/ameriquests/article/view/220",
+				"attachments": [
+					{
+						"title": "Snapshot"
+					}
+				],
+				"tags": [
+					"American studies",
+					"Canadian studies",
+					"american dream",
+					"brazilian studies",
+					"center for the americas",
+					"free trade",
+					"inter-american literature",
+					"latin american studies",
+					"literature and law",
+					"migration",
+					"native american studies",
+					"quebec studies",
+					"storytelling",
+					"vanderbilt"
 				],
 				"notes": [],
 				"seeAlso": []

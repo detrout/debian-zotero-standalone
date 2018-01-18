@@ -26,10 +26,10 @@
 "use strict";
 
 Zotero_Preferences.Cite = {
-	init: function () {
+	init: Zotero.Promise.coroutine(function* () {
 		this.updateWordProcessorInstructions();
-		this.refreshStylesList();
-	},
+		yield this.refreshStylesList();
+	}),
 	
 	
 	/**
@@ -48,8 +48,9 @@ Zotero_Preferences.Cite = {
 	/**
 	 * Refreshes the list of styles in the styles pane
 	 * @param {String} cslID Style to select
+	 * @return {Promise}
 	 */
-	refreshStylesList: function (cslID) {
+	refreshStylesList: Zotero.Promise.coroutine(function* (cslID) {
 		Zotero.debug("Refreshing styles list");
 		
 		var treechildren = document.getElementById('styleManager-rows');
@@ -57,11 +58,10 @@ Zotero_Preferences.Cite = {
 			treechildren.removeChild(treechildren.firstChild);
 		}
 		
+		yield Zotero.Styles.init();
 		var styles = Zotero.Styles.getVisible();
-		
 		var selectIndex = false;
-		var i = 0;
-		for each(var style in styles) {
+		styles.forEach(function (style, i) {
 			var treeitem = document.createElement('treeitem');
 			var treerow = document.createElement('treerow');
 			var titleCell = document.createElement('treecell');
@@ -86,8 +86,21 @@ Zotero_Preferences.Cite = {
 			if (cslID == style.styleID) {
 				document.getElementById('styleManager').view.selection.select(i);
 			}
-			i++;
-		}
+		});
+	}),
+	
+	
+	openStylesPage: function () {
+		Zotero.openInViewer("https://www.zotero.org/styles/", function (doc) {
+			// Hide header, intro paragraph, Link, and Source
+			//
+			// (The first two aren't sent to the client normally, but hide anyway in case they are.)
+			var style = doc.createElement('style');
+			style.type = 'text/css';
+			style.innerHTML = 'h1, #intro, .style-individual-link, .style-view-source { display: none !important; }';
+			Zotero.debug(doc.documentElement.innerHTML);
+			doc.getElementsByTagName('head')[0].appendChild(style);
+		});
 	},
 	
 	
@@ -104,7 +117,11 @@ Zotero_Preferences.Cite = {
 		
 		var rv = fp.show();
 		if (rv == nsIFilePicker.returnOK || rv == nsIFilePicker.returnReplace) {
-			Zotero.Styles.install(fp.file);
+			Zotero.Styles.install({ file: fp.file }, fp.file.path, true)
+			.catch(function (e) {
+				(new Zotero.Exception.Alert("styles.install.unexpectedError",
+					fp.file.path, "styles.install.title", e)).present()
+			});
 		}
 	},
 	
@@ -112,7 +129,7 @@ Zotero_Preferences.Cite = {
 	/**
 	 * Deletes selected styles from the styles pane
 	 **/
-	deleteStyle: function () {
+	deleteStyle: Zotero.Promise.coroutine(function* () {
 		// get selected cslIDs
 		var tree = document.getElementById('styleManager');
 		var treeItems = tree.lastChild.childNodes;
@@ -141,17 +158,17 @@ Zotero_Preferences.Cite = {
 		if(ps.confirm(null, '', text)) {
 			// delete if requested
 			if(cslIDs.length == 1) {
-				selectedStyle.remove();
+				yield selectedStyle.remove();
 			} else {
 				for(var i=0; i<cslIDs.length; i++) {
-					Zotero.Styles.get(cslIDs[i]).remove();
+					yield Zotero.Styles.get(cslIDs[i]).remove();
 				}
 			}
 			
-			this.refreshStylesList();
+			yield this.refreshStylesList();
 			document.getElementById('styleManager-delete').disabled = true;
 		}
-	},
+	}),
 	
 	
 	/**

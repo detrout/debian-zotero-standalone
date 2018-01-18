@@ -3,12 +3,12 @@
 xmlns:d="http://openoffice.org/extensions/description/2006"
 xmlns:xlink="http://www.w3.org/1999/xlink">
  
-  <version value="3.5.9" />   
+  <version value="5.0.8"/>
  
   <identifier value="org.Zotero.integration.openoffice" />
  
   <dependencies>
-    <OpenOffice.org-minimal-version value="3.0" d:name="OpenOffice.org 3.0"/>
+    <OpenOffice.org-minimal-version value="4.1" d:name="OpenOffice.org 4.1"/>
   </dependencies>
  
   <update-information>
@@ -16,12 +16,11 @@ xmlns:xlink="http://www.w3.org/1999/xlink">
   </update-information>
  
   <publisher>
-    <name xlink:href="http://www.zotero.org/" 
-    lang="en">Center for History and New Media</name>
+    <name xlink:href="https://www.zotero.org/" lang="en">Corporation for Digital Scholarship</name>
   </publisher>
  
   <release-notes>
-    <src xlink:href="http://www.zotero.org/documentation/changelog" lang="en" />
+    <src xlink:href="https://www.zotero.org/documentation/changelog" lang="en" />
   </release-notes>
  
   <display-name>

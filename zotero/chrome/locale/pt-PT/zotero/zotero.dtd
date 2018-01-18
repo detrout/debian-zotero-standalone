@@ -1,3 +1,5 @@
+<!ENTITY zotero.general.yes "Sim">
+<!ENTITY zotero.general.no "Não">
 <!ENTITY zotero.general.optional "(Opcional)">
 <!ENTITY zotero.general.note "Nota:">
 <!ENTITY zotero.general.selectAll "Seleccionar Tudo">
@@ -8,9 +10,12 @@
 <!ENTITY zotero.general.cancel "Cancelar">
 <!ENTITY zotero.general.refresh "Recarregar">
 <!ENTITY zotero.general.saveAs "Guardar Como…">
+<!ENTITY zotero.general.advancedOptions.label "Opções Avançadas">
+<!ENTITY zotero.general.tools "Tools">
+<!ENTITY zotero.general.more "Mais">
+<!ENTITY zotero.general.loading "Carregando…">
 
 <!ENTITY zotero.errorReport.title "Relatório de Erros do Zotero">
-<!ENTITY zotero.errorReport.unrelatedMessages "Pode incluir mensagens sem relação com o Zotero.">
 <!ENTITY zotero.errorReport.submissionInProgress "Por favor aguarde enquanto o relatório de erro é enviado.">
 <!ENTITY zotero.errorReport.submitted "O relatório de erro foi enviado.">
 <!ENTITY zotero.errorReport.reportID "ID de Relatório:">
@@ -100,7 +105,9 @@
 <!ENTITY zotero.toolbar.newItemFromPage.label "Criar Item de Página Web a partir da Página Corrente">
 <!ENTITY zotero.toolbar.lookup.label "Adicionar Item(s) por Identificador">
 <!ENTITY zotero.toolbar.removeItem.label "Remover Item...">
+<!ENTITY zotero.toolbar.newLibrary.label "Nova Biblioteca">
 <!ENTITY zotero.toolbar.newCollection.label "Nova Colecção...">
+<!ENTITY zotero.toolbar.markFeedRead.label "Marcar Feed como Lido">
 <!ENTITY zotero.toolbar.newGroup "Novo Grupo...">
 <!ENTITY zotero.toolbar.newSubcollection.label "Nova Subcolecção...">
 <!ENTITY zotero.toolbar.newSavedSearch.label "Nova Procura Guardada...">
@@ -116,9 +123,15 @@
 <!ENTITY zotero.toolbar.supportAndDocumentation "Suporte e Documentação">
 <!ENTITY zotero.toolbar.about.label "Acerca do Zotero">
 <!ENTITY zotero.toolbar.advancedSearch "Procura Avançada">
-<!ENTITY zotero.toolbar.tab.tooltip "Alternar Modo de Separadores">
 <!ENTITY zotero.toolbar.openURL.label "Localizar">
 <!ENTITY zotero.toolbar.openURL.tooltip "Encontrar através da sua biblioteca local">
+
+<!ENTITY zotero.toolbar.feeds.new "Novo Feed">
+<!ENTITY zotero.toolbar.feeds.new.fromURL "A Partir de URL…">
+<!ENTITY zotero.toolbar.feeds.new.fromPage "A Partir de Página…">
+<!ENTITY zotero.toolbar.feeds.new.fromOPML "A Partir de OPML…">
+<!ENTITY zotero.toolbar.feeds.refresh "Actualizar Feed">
+<!ENTITY zotero.toolbar.feeds.edit "Editar Feed…">
 
 <!ENTITY zotero.item.add "Adicionar">
 <!ENTITY zotero.item.attachment.file.show "Mostrar Arquivo">
@@ -128,6 +141,9 @@
 <!ENTITY zotero.item.creatorTransform.nameSwap "Trocar Próprio/Apelido">
 <!ENTITY zotero.item.viewOnline "Ver em Linha">
 <!ENTITY zotero.item.copyAsURL "Copiar como URL">
+<!ENTITY zotero.item.deletePermanently "Remover Permanentemente…">
+
+<!ENTITY zotero.item.tags.removeAll "Remove All Tags…">
 
 <!ENTITY zotero.toolbar.newNote "Nova Nota">
 <!ENTITY zotero.toolbar.note.standalone "Nova Nota Isolada">
@@ -139,11 +155,10 @@
 <!ENTITY zotero.toolbar.attachment.snapshot "Capturar a Página Corrente">
 
 <!ENTITY zotero.tagSelector.noTagsToDisplay "Não há etiquetas a mostrar">
-<!ENTITY zotero.tagSelector.filter "Filtro:">
+<!ENTITY zotero.tagSelector.loadingTags "Carregando etiquetas…">
 <!ENTITY zotero.tagSelector.showAutomatic "Mostrar Etiquetas Automáticas">
 <!ENTITY zotero.tagSelector.displayAllInLibrary "Mostrar Todas as Etiquetas Nesta Biblioteca">
-<!ENTITY zotero.tagSelector.selectVisible "Seleccionar Visíveis">
-<!ENTITY zotero.tagSelector.clearVisible "Desseleccionar Visíveis">
+<!ENTITY zotero.tagSelector.deleteAutomaticInLibrary "Delete Automatic Tags in This Library…">
 <!ENTITY zotero.tagSelector.clearAll "Desseleccionar Todas">
 <!ENTITY zotero.tagSelector.assignColor "Atribuir Cor...">
 <!ENTITY zotero.tagSelector.renameTag "Renomear a Etiqueta...">
@@ -165,6 +180,7 @@
 
 <!ENTITY zotero.bibliography.title "Criar Citação/Bibliografia">
 <!ENTITY zotero.bibliography.style.label "Estilo de Citação:">
+<!ENTITY zotero.bibliography.manageStyles "Gerir Estilos…">
 <!ENTITY zotero.bibliography.locale.label "Língua:">
 <!ENTITY zotero.bibliography.outputMode "Modo de Saída:">
 <!ENTITY zotero.bibliography.bibliography "Bibliografia:">
@@ -211,23 +227,20 @@
 <!ENTITY zotero.integration.prefs.footnotes.label "Notas de pé-de-página">
 <!ENTITY zotero.integration.prefs.endnotes.label "Notas finais">
 
-<!ENTITY zotero.integration.prefs.formatUsing.label "Formatar Usando:">
+<!ENTITY zotero.integration.prefs.formatUsing.label "Guardar Citações como:">
 <!ENTITY zotero.integration.prefs.bookmarks.label "Marcadores">
-<!ENTITY zotero.integration.prefs.bookmarks.caption "Os marcadores são preservados entre o Microsoft Word e o OpenOffice, mas podem ser acidentalmente modificados. Por razões de compatibilidade, as citações não podem ser inseridas em notas de pé-de-página ou em notas finais quando esta opção é escolhida.">
+<!ENTITY zotero.integration.prefs.bookmarks.caption "Os marcadores podem ser partilhados entre o Word e o LibreOffice, mas podem causar erros se forem acidentalmente modificados e não podem ser inseridos em notas de rodapé.">
 
 
-<!ENTITY zotero.integration.prefs.automaticJournalAbbeviations.label "Abreviar automaticamente títulos de publicações periódicas">
-<!ENTITY zotero.integration.prefs.automaticJournalAbbeviations.caption "As abreviações de publicações periódicas MEDLINE serão geradas automaticamente usando os títulos das publicações periódicas. O campo «Journal Abbr» será ignorado.">
-
-<!ENTITY zotero.integration.prefs.storeReferences.label "Armazenar referências no documento">
-<!ENTITY zotero.integration.prefs.storeReferences.caption "Armazenar referências no seu documento aumenta ligeiramente o tamanho do ficheiro, mas permitir-lhe-á partilhar o documento com outros sem usar um grupo Zotero. É necessário usar o Zotero 3.0 ou uma versão posterior para actualizar documentos criados com esta opção.">
+<!ENTITY zotero.integration.prefs.automaticJournalAbbeviations.label "Usar abreviaturas de publicações periódicas do MEDLINE">
+<!ENTITY zotero.integration.prefs.automaticJournalAbbeviations.caption "O campo «Abreviatura da Publicação» será ignorado.">
 
 <!ENTITY zotero.integration.showEditor.label "Mostrar Editor">
 <!ENTITY zotero.integration.classicView.label "Visualização Clássica">
 
 <!ENTITY zotero.integration.references.label "Referências na Bibliografia">
 
-<!ENTITY zotero.sync.button "Sincronizar com o Servidor Zotero">
+<!ENTITY zotero.sync.stop "Stop Sync">
 <!ENTITY zotero.sync.error "Erro de Sincronização">
 <!ENTITY zotero.sync.storage.progress "Progresso:">
 <!ENTITY zotero.sync.storage.downloads "Descarregamentos:">
@@ -252,6 +265,18 @@
 <!ENTITY zotero.proxy.recognized.warning.secondary "Adicionar outros proxies permite que sítios Web maliciosos se façam passar pelos sítios Web em que confia.">
 <!ENTITY zotero.proxy.recognized.disable.label "Não redireccionar automaticamente os pedidos através de proxies previamente reconhecidos.">
 <!ENTITY zotero.proxy.recognized.ignore.label "Ignorar">
+
+<!ENTITY zotero.feedSettings.title "Preferências do Feed">
+<!ENTITY zotero.feedSettings.saveButton.label "Guardar">
+<!ENTITY zotero.feedSettings.url.label "URL:">
+<!ENTITY zotero.feedSettings.title.label "Título:">
+<!ENTITY zotero.feedSettings.refresh.label1 "Actualizar feed a cada">
+<!ENTITY zotero.feedSettings.refresh.label2 "hora(s)">
+<!ENTITY zotero.feedSettings.cleanupUnreadAfter.label1 "Remover itens do feed por ler após">
+<!ENTITY zotero.feedSettings.cleanupUnreadAfter.label2 "dia(s)">
+<!ENTITY zotero.feedSettings.cleanupReadAfter.label1 "Remover itens do feed já lidos após">
+<!ENTITY zotero.feedSettings.cleanupReadAfter.label2 "dia(s)">
+
 
 <!ENTITY zotero.recognizePDF.recognizing.label "Obtendo Metadados...">
 <!ENTITY zotero.recognizePDF.cancel.label "Cancelar">

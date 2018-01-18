@@ -9,7 +9,7 @@
 	"inRepository": true,
 	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2016-01-21 13:29:55"
+	"lastUpdated": "2017-10-29 04:47:45"
 }
 
 /*
@@ -94,7 +94,8 @@ function scrape(doc) {
 
 	//compose bibtex URL
 	var bibtexstring = 'id=' + itemID + '&parent_id=' + parentID + '&expformat=bibtex';
-	var bibtexURL = url.replace(/citation\.cfm/, 'downformats.cfm')
+	var bibtexURL = url.replace(/dl[.-]acm[.-]org[^\/]*/, "dl.acm.org")  //deproxify the URL above.
+		.replace(/citation\.cfm/, 'downformats.cfm')
 		.replace(/([?&])id=[^&#]+/, '$1' + bibtexstring);
 	Zotero.debug('bibtex URL: ' + bibtexURL);
 	
@@ -106,8 +107,10 @@ function scrape(doc) {
 			//get the URL for the pdf fulltext from the metadata
 			var pdfURL = ZU.xpath(doc, '//meta[@name="citation_pdf_url"]/@content')[0];
 			if (pdfURL) {
+				pdfURL = pdfURL.textContent.replace(/dl[.-]acm[.-]org[^\/]*/, "dl.acm.org"); //deproxify URL
+				Z.debug("pdfURL: " + pdfURL);
 				item.attachments = [{
-					url: pdfURL.textContent,
+					url: pdfURL,
 					title: "ACM Full Text PDF",
 					mimeType: "application/pdf"
 				}];
@@ -125,6 +128,16 @@ function scrape(doc) {
 			// some bibtext contains odd </kwd> tags - remove them
 			for(var i=0; i<item.tags.length; i++) {
 				item.tags[i] = item.tags[i].replace("</kwd>", "");
+			}
+			
+			//full issues of journals/magazines don't have a title
+			if (!item.title && text.indexOf("issue_date")>-1) {
+				var m = text.match(/issue_date\s*=\s*{(.*)},?/);
+				item.itemType = "book";
+				item.title = item.publicationTitle;
+				if (m) {
+					item.title = item.title + ", " + m[1];
+				}
 			}
 			
 			item.complete();
@@ -377,6 +390,38 @@ var testCases = [
 		"type": "web",
 		"url": "http://dl.acm.org/author_page.cfm?id=81100246710",
 		"items": "multiple"
+	},
+	{
+		"type": "web",
+		"url": "http://dl.acm.org/citation.cfm?id=3029062",
+		"items": [
+			{
+				"itemType": "book",
+				"title": "interactions, January - February 2017",
+				"creators": [
+					{
+						"firstName": "Ron",
+						"lastName": "Wakkary",
+						"creatorType": "editor"
+					},
+					{
+						"firstName": "Erik",
+						"lastName": "Stolterman",
+						"creatorType": "editor"
+					}
+				],
+				"date": "2016",
+				"itemID": "Wakkary:2016:3029062",
+				"libraryCatalog": "ACM Digital Library",
+				"place": "New York, NY, USA",
+				"publisher": "ACM",
+				"volume": "24",
+				"attachments": [],
+				"tags": [],
+				"notes": [],
+				"seeAlso": []
+			}
+		]
 	}
 ]
 /** END TEST CASES **/

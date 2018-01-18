@@ -1,7 +1,7 @@
 {
 	"artwork": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"artworkSize": "Artwork size",
@@ -37,7 +37,7 @@
 	"audioRecording": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -87,7 +87,7 @@
 	},
 	"bill": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"code": "Code",
 		"creators": [
 			{
@@ -129,7 +129,7 @@
 	},
 	"blogPost": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"creators": [
 			{
 				"creatorType": "author",
@@ -166,7 +166,7 @@
 	"book": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -223,7 +223,7 @@
 	"bookSection": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -285,7 +285,7 @@
 	},
 	"case": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"court": "Court",
 		"creators": [
 			{
@@ -326,7 +326,7 @@
 	"computerProgram": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -360,13 +360,13 @@
 		"system": "System",
 		"title": "Title",
 		"url": "http://www.example.com",
-		"version": "Version"
+		"versionNumber": "Version number"
 	},
 	"conferencePaper": {
 		"DOI": "10.1234/example.doi",
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -422,7 +422,7 @@
 	"dictionaryEntry": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -479,7 +479,7 @@
 	},
 	"document": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -528,7 +528,7 @@
 	},
 	"email": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"creators": [
 			{
 				"creatorType": "author",
@@ -563,7 +563,7 @@
 	"encyclopediaArticle": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -620,7 +620,7 @@
 	},
 	"film": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -667,7 +667,7 @@
 	},
 	"forumPost": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"creators": [
 			{
 				"creatorType": "author",
@@ -698,7 +698,7 @@
 	},
 	"hearing": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"committee": "Committee",
 		"creators": [
 			{
@@ -731,7 +731,7 @@
 	},
 	"instantMessage": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"creators": [
 			{
 				"creatorType": "author",
@@ -765,7 +765,7 @@
 	},
 	"interview": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -811,7 +811,7 @@
 		"DOI": "10.1234/example.doi",
 		"ISSN": "1234-5679",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -867,7 +867,7 @@
 	},
 	"letter": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -907,7 +907,7 @@
 	"magazineArticle": {
 		"ISSN": "1234-5679",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -954,7 +954,7 @@
 	},
 	"manuscript": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -996,7 +996,7 @@
 	"map": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -1041,7 +1041,7 @@
 	"newspaperArticle": {
 		"ISSN": "1234-5679",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -1089,7 +1089,7 @@
 	},
 	"patent": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"applicationNumber": "Application number",
 		"assignee": "Assignee",
 		"country": "Country",
@@ -1134,7 +1134,7 @@
 	},
 	"podcast": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"creators": [
 			{
 				"creatorType": "podcaster",
@@ -1171,7 +1171,7 @@
 	},
 	"presentation": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"creators": [
 			{
 				"creatorType": "presenter",
@@ -1203,7 +1203,7 @@
 	},
 	"radioBroadcast": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -1262,7 +1262,7 @@
 	},
 	"report": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -1311,7 +1311,7 @@
 	},
 	"statute": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"code": "Code",
 		"codeNumber": "Code number",
 		"creators": [
@@ -1347,7 +1347,7 @@
 	},
 	"thesis": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -1384,7 +1384,7 @@
 	},
 	"tvBroadcast": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -1444,7 +1444,7 @@
 	"videoRecording": {
 		"ISBN": "978-1-234-56789-7",
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"archive": "Archive",
 		"archiveLocation": "Archive location",
 		"callNumber": "Call number",
@@ -1499,7 +1499,7 @@
 	},
 	"webpage": {
 		"abstractNote": "Abstract note",
-		"accessDate": "1997-06-13 23:59:58",
+		"accessDate": "1997-06-13T23:59:58Z",
 		"creators": [
 			{
 				"creatorType": "author",

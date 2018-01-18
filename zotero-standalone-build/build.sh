@@ -34,12 +34,14 @@ fi
 
 function usage {
 	cat >&2 <<DONE
-Usage: $0 [-f FILE] [-u DIR] -p PLATFORMS [-c CHANNEL] [-d]
+Usage: $0 [-d DIR] [-f FILE] -p PLATFORMS [-c CHANNEL] [-d]
 Options
  -d DIR              build directory to build from (from build_xpi; cannot be used with -f)
  -f FILE             ZIP file to build from (cannot be used with -d)
+ -t                  add devtools
  -p PLATFORMS        build for platforms PLATFORMS (m=Mac, w=Windows, l=Linux)
  -c CHANNEL          use update channel CHANNEL
+ -e                  enforce signing
  -s                  don't package; only build binaries in staging/ directory
 DONE
 	exit 1
@@ -55,11 +57,14 @@ function abspath {
 	echo $(cd $(dirname $1); pwd)/$(basename $1);
 }
 
+SOURCE_DIR=""
+ZIP_FILE=""
 BUILD_MAC=0
 BUILD_WIN32=0
 BUILD_LINUX=0
 PACKAGE=1
-while getopts "d:f:p:c:s" opt; do
+DEVTOOLS=0
+while getopts "d:f:p:c:tse" opt; do
 	case $opt in
 		d)
 			SOURCE_DIR="$OPTARG"
@@ -83,6 +88,12 @@ while getopts "d:f:p:c:s" opt; do
 			;;
 		c)
 			UPDATE_CHANNEL="$OPTARG"
+			;;
+		t)
+			DEVTOOLS=1
+			;;
+		e)
+			SIGN=1
 			;;
 		s)
 			PACKAGE=0
@@ -189,7 +200,14 @@ perl -pi -e "s/\{\{BUILDID}}/$BUILD_ID/" "$BUILD_DIR/application.ini"
 # Copy prefs.js and modify
 cp "$CALLDIR/assets/prefs.js" "$BUILD_DIR/zotero/defaults/preferences"
 perl -pi -e 's/pref\("app\.update\.channel", "[^"]*"\);/pref\("app\.update\.channel", "'"$UPDATE_CHANNEL"'");/' "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
-perl -pi -e 's/%GECKO_VERSION%/'"$GECKO_VERSION"'/g' "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
+
+# Add devtools manifest and pref
+if [ $DEVTOOLS -eq 1 ]; then
+	cat "$CALLDIR/assets/devtools.manifest" >> "$BUILD_DIR/zotero/chrome.manifest"
+	echo 'pref("devtools.debugger.remote-enabled", true);' >> "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
+	echo 'pref("devtools.debugger.remote-port", 6100);' >> "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
+	echo 'pref("devtools.debugger.prompt-connection", false);' >> "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
+fi
 
 echo -n "Channel: "
 grep app.update.channel "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
@@ -215,14 +233,14 @@ if [ $BUILD_MAC == 1 ]; then
 	
 	# Modify platform-specific prefs
 	perl -pi -e 's/pref\("browser\.preferences\.instantApply", false\);/pref\("browser\.preferences\.instantApply", true);/' "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
+	perl -pi -e 's/%GECKO_VERSION%/'"$GECKO_VERSION_MAC"'/g' "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
 	
 	# Merge relevant assets from Firefox
 	mkdir "$CONTENTSDIR/MacOS"
-	cp -r "$MAC_RUNTIME_PATH/Contents/MacOS/"!(firefox-bin|crashreporter.app|updater.app) "$CONTENTSDIR/MacOS"
-	cp -r "$MAC_RUNTIME_PATH/Contents/Resources/"!(application.ini|updater.ini|update-settings.ini|browser|precomplete|removed-files|webapprt*|*.icns|defaults|*.lproj) "$CONTENTSDIR/Resources"
+	cp -r "$MAC_RUNTIME_PATH/Contents/MacOS/"!(firefox|firefox-bin|crashreporter.app|pingsender|updater.app) "$CONTENTSDIR/MacOS"
+	cp -r "$MAC_RUNTIME_PATH/Contents/Resources/"!(application.ini|updater.ini|update-settings.ini|browser|devtools-files|precomplete|removed-files|webapprt*|*.icns|defaults|*.lproj) "$CONTENTSDIR/Resources"
 
 	# Use our own launcher
-	mv "$CONTENTSDIR/MacOS/firefox" "$CONTENTSDIR/MacOS/zotero-bin"
 	cp "$CALLDIR/mac/zotero" "$CONTENTSDIR/MacOS/zotero"
 	cp "$BUILD_DIR/application.ini" "$CONTENTSDIR/Resources"
 
@@ -243,6 +261,12 @@ if [ $BUILD_MAC == 1 ]; then
 	# Add Mac-specific Standalone assets
 	cd "$CALLDIR/assets/mac"
 	zip -r -q "$CONTENTSDIR/Resources/zotero.jar" *
+	
+	# Add devtools
+	if [ $DEVTOOLS -eq 1 ]; then
+		cp -r "$MAC_RUNTIME_PATH"/Contents/Resources/devtools-files/chrome/* "$CONTENTSDIR/Resources/chrome/"
+		cp "$MAC_RUNTIME_PATH/Contents/Resources/devtools-files/components/interfaces.xpt" "$CONTENTSDIR/Resources/components/"
+	fi
 	
 	# Add word processor plug-ins
 	mkdir "$CONTENTSDIR/Resources/extensions"
@@ -271,7 +295,7 @@ if [ $BUILD_MAC == 1 ]; then
 	if [ $SIGN == 1 ]; then
 		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/updater.app/Contents/MacOS/org.mozilla.updater"
 		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/updater.app"
-		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/zotero-bin"
+		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR/Contents/MacOS/zotero"
 		/usr/bin/codesign --force --sign "$DEVELOPER_ID" "$APPDIR"
 		/usr/bin/codesign --verify -vvvv "$APPDIR"
 	fi
@@ -301,9 +325,11 @@ if [ $BUILD_WIN32 == 1 ]; then
 	rm -rf "$APPDIR"
 	mkdir "$APPDIR"
 	
+	# Modify platform-specific prefs
+	perl -pi -e 's/%GECKO_VERSION%/'"$GECKO_VERSION_WIN"'/g' "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
+	
 	# Copy relevant assets from Firefox
-	mkdir "$APPDIR/xulrunner"
-	cp -R "$WIN32_RUNTIME_PATH"/!(api-ms*.dll|application.ini|browser|defaults|crashreporter*|firefox.exe|maintenanceservice*|precomplete|removed-files|uninstall|update*) "$APPDIR/xulrunner"
+	cp -R "$WIN32_RUNTIME_PATH"/!(application.ini|browser|defaults|devtools-files|crashreporter*|firefox.exe|maintenanceservice*|precomplete|removed-files|uninstall|update*) "$APPDIR"
 	
 	# Copy zotero.exe, which is xulrunner-stub from https://github.com/duanyao/xulrunner-stub
 	# modified with ReplaceVistaIcon.exe and edited with Resource Hacker
@@ -313,22 +339,26 @@ if [ $BUILD_WIN32 == 1 ]; then
 	#       "`cygpath -w \"$CALLDIR/assets/icons/default/main-window.ico\"`"
 	#
 	cp "$CALLDIR/win/zotero.exe" "$APPDIR"
-	
+
+	# zotero.exe (xulrunner-stub) is compiled with VS2013 therefore
+	# needs older 'msvcr' library than Firefox has
+	cp "$CALLDIR/win/msvcr120.dll" "$APPDIR"
+
 	# Use our own updater, because Mozilla's requires updates signed by Mozilla
-	cp "$CALLDIR/win/updater.exe" "$APPDIR/xulrunner"
-	cat "$CALLDIR/win/installer/updater_append.ini" >> "$APPDIR/xulrunner/updater.ini"
-	
-	# Copy files to root as required by xulrunner-stub
-	cp "$WIN32_RUNTIME_PATH/mozglue.dll" \
-		"$WIN32_RUNTIME_PATH/msvcp120.dll" \
-		"$WIN32_RUNTIME_PATH/msvcr120.dll" \
-		"$APPDIR/"
+	cp "$CALLDIR/win/updater.exe" "$APPDIR"
+	cat "$CALLDIR/win/installer/updater_append.ini" >> "$APPDIR/updater.ini"
 	
 	cp -R "$BUILD_DIR/zotero/"* "$BUILD_DIR/application.ini" "$APPDIR"
 	
 	# Add Windows-specific Standalone assets
 	cd "$CALLDIR/assets/win"
 	zip -r -q "$APPDIR/zotero.jar" *
+	
+	# Add devtools
+	if [ $DEVTOOLS -eq 1 ]; then
+		cp -r "$WIN32_RUNTIME_PATH"/devtools-files/chrome/* "$APPDIR/chrome/"
+		cp "$WIN32_RUNTIME_PATH/devtools-files/components/interfaces.xpt" "$APPDIR/components/"
+	fi
 	
 	# Add word processor plug-ins
 	mkdir "$APPDIR/extensions"
@@ -367,12 +397,12 @@ if [ $BUILD_WIN32 == 1 ]; then
 			if [ $SIGN == 1 ]; then
 				"`cygpath -u \"$SIGNTOOL\"`" sign /n "$SIGNTOOL_CERT_SUBJECT" /d "Zotero" \
 					/du "$SIGNATURE_URL" "`cygpath -w \"$APPDIR/zotero.exe\"`"
-				for dll in "$APPDIR/"*.dll "$APPDIR/xulrunner/"*.dll; do
+				for dll in "$APPDIR/"*.dll "$APPDIR/"*.dll; do
 					"`cygpath -u \"$SIGNTOOL\"`" sign /n "$SIGNTOOL_CERT_SUBJECT" /d "Zotero" \
 						/du "$SIGNATURE_URL" "`cygpath -w \"$dll\"`"
 				done
 				"`cygpath -u \"$SIGNTOOL\"`" sign /n "$SIGNTOOL_CERT_SUBJECT" /d "Zotero Updater" \
-					/du "$SIGNATURE_URL" "`cygpath -w \"$APPDIR/xulrunner/updater.exe\"`"
+					/du "$SIGNATURE_URL" "`cygpath -w \"$APPDIR/updater.exe\"`"
 				"`cygpath -u \"$SIGNTOOL\"`" sign /n "$SIGNTOOL_CERT_SUBJECT" /d "Zotero Uninstaller" \
 					/du "$SIGNATURE_URL" "`cygpath -w \"$APPDIR/uninstall/helper.exe\"`"
 			fi
@@ -428,7 +458,7 @@ if [ $BUILD_LINUX == 1 ]; then
 		mkdir "$APPDIR"
 		
 		# Merge relevant assets from Firefox
-		cp -r "$RUNTIME_PATH/"!(application.ini|browser|defaults|crashreporter|crashreporter.ini|firefox-bin|precomplete|removed-files|run-mozilla.sh|update-settings.ini|updater|updater.ini) "$APPDIR"
+		cp -r "$RUNTIME_PATH/"!(application.ini|browser|defaults|devtools-files|crashreporter|crashreporter.ini|firefox-bin|pingsender|precomplete|removed-files|run-mozilla.sh|update-settings.ini|updater|updater.ini) "$APPDIR"
 		
 		# Use our own launcher that calls the original Firefox executable with -app
 		mv "$APPDIR"/firefox "$APPDIR"/zotero-bin
@@ -445,10 +475,17 @@ if [ $BUILD_LINUX == 1 ]; then
 		
 		# Modify platform-specific prefs
 		perl -pi -e 's/pref\("browser\.preferences\.instantApply", false\);/pref\("browser\.preferences\.instantApply", true);/' "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
+		perl -pi -e 's/%GECKO_VERSION%/'"$GECKO_VERSION_LINUX"'/g' "$BUILD_DIR/zotero/defaults/preferences/prefs.js"
 		
 		# Add Unix-specific Standalone assets
 		cd "$CALLDIR/assets/unix"
 		zip -0 -r -q "$APPDIR/zotero.jar" *
+		
+		# Add devtools
+		if [ $DEVTOOLS -eq 1 ]; then
+			cp -r "$RUNTIME_PATH"/devtools-files/chrome/* "$APPDIR/chrome/"
+			cp "$RUNTIME_PATH/devtools-files/components/interfaces.xpt" "$APPDIR/components/"
+		fi
 		
 		# Add word processor plug-ins
 		mkdir "$APPDIR/extensions"
@@ -464,9 +501,6 @@ if [ $BUILD_LINUX == 1 ]; then
 		find "$APPDIR" -depth -type d -name .git -exec rm -rf {} \;
 		find "$APPDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
 		find "$APPDIR/extensions" -depth -type d -name build -exec rm -rf {} \;
-		
-		# Add run-zotero.sh
-		#cp "$CALLDIR/linux/run-zotero.sh" "$APPDIR/run-zotero.sh"
 		
 		if [ $PACKAGE == 1 ]; then
 			# Create tar

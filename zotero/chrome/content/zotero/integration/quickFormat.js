@@ -206,7 +206,7 @@ var Zotero_QuickFormat = new function () {
 	/**
 	 * Does the dirty work of figuring out what the user meant to type
 	 */
-	function _quickFormat() {
+	var _quickFormat = Zotero.Promise.coroutine(function* () {
 		var str = _getEditorContent();
 		var haveConditions = false;
 		
@@ -270,6 +270,9 @@ var Zotero_QuickFormat = new function () {
 			str = str.replace(/ (?:&|and) /g, " ", "g");
 			if(charRe.test(str)) {
 				Zotero.debug("QuickFormat: QuickSearch: "+str);
+				// Exclude feeds
+				Zotero.Feeds.getAll()
+					.forEach(feed => s.addCondition("libraryID", "isNot", feed.libraryID));
 				s.addCondition("quicksearch-titleCreatorYear", "contains", str);
 				s.addCondition("itemType", "isNot", "attachment");
 				haveConditions = true;
@@ -277,13 +280,17 @@ var Zotero_QuickFormat = new function () {
 		}
 		
 		if(haveConditions) {		
-			var searchResultIDs = (haveConditions ? s.search() : []);
+			var searchResultIDs = (haveConditions ? (yield s.search()) : []);
+			
+			// Show items list without cited items to start
+			yield _updateItemList(false, false, str, searchResultIDs);
 			
 			// Check to see which search results match items already in the document
 			var citedItems, completed = false, isAsync = false;
-			// Save current search so that when we get items, we know whether it's too late to
+			// Save current search time so that when we get items, we know whether it's too late to
 			// process them or not
 			var lastSearchTime = currentSearchTime = Date.now();
+			// This may or may not be synchronous
 			io.getItems().then(function(citedItems) {
 				// Don't do anything if panel is already closed
 				if(isAsync &&
@@ -305,7 +312,7 @@ var Zotero_QuickFormat = new function () {
 						// Generate a string to search for each item
 						let item = citedItems[i];
 						let itemStr = item.getCreators()
-							.map(creator => creator.ref.firstName + " " + creator.ref.lastName)
+							.map(creator => creator.firstName + " " + creator.lastName)
 							.concat([item.getField("title"), item.getField("date", true, true).substr(0, 4)])
 							.join(" ");
 						
@@ -322,13 +329,11 @@ var Zotero_QuickFormat = new function () {
 				}
 				
 				_updateItemList(citedItems, citedItemsMatchingSearch, str, searchResultIDs, isAsync);
-			}).done();
+			});
 			
 			if(!completed) {
 				// We are going to have to wait until items have been retrieved from the document.
-				// Until then, show item list without cited items.
 				Zotero.debug("Getting cited items asynchronously");
-				_updateItemList(false, false, str, searchResultIDs);
 				isAsync = true;
 			} else {
 				Zotero.debug("Got cited items synchronously");
@@ -337,7 +342,7 @@ var Zotero_QuickFormat = new function () {
 			// No search conditions, so just clear the box
 			_updateItemList([], [], "", []);
 		}
-	}
+	});
 	
 	/**
 	 * Updates currentLocator based on a string
@@ -356,7 +361,8 @@ var Zotero_QuickFormat = new function () {
 	/**
 	 * Updates the item list
 	 */
-	function _updateItemList(citedItems, citedItemsMatchingSearch, searchString, searchResultIDs, preserveSelection) {
+	var _updateItemList = Zotero.Promise.coroutine(function* (citedItems, citedItemsMatchingSearch,
+			searchString, searchResultIDs, preserveSelection) {
 		var selectedIndex = 1, previousItemID;
 		
 		// Do this so we can preserve the selected item after cited items have been loaded
@@ -378,7 +384,7 @@ var Zotero_QuickFormat = new function () {
 				var citedItem = citedItems[i];
 				// Tabulate number of items in document for each library
 				if(!citedItem.cslItemID) {
-					var libraryID = citedItem.libraryID ? citedItem.libraryID : 0;
+					var libraryID = citedItem.libraryID;
 					if(libraryID in nCitedItemsFromLibrary) {
 						nCitedItemsFromLibrary[libraryID]++;
 					} else {
@@ -402,7 +408,7 @@ var Zotero_QuickFormat = new function () {
 		for(var citationItem of io.citation.citationItems) {
 			var citedItem = Zotero.Cite.getItem(citationItem.id);
 			if(!citedItem.cslItemID) {
-				var libraryID = citedItem.libraryID ? citedItem.libraryID : 0;
+				var libraryID = citedItem.libraryID;
 				if(libraryID in nCitedItemsFromLibrary) {
 					nCitedItemsFromLibrary[libraryID]++;
 				} else {
@@ -412,7 +418,10 @@ var Zotero_QuickFormat = new function () {
 		}
 
 		if(searchResultIDs.length && (!citedItemsMatchingSearch || citedItemsMatchingSearch.length < 50)) {
-			var items = Zotero.Items.get(searchResultIDs);
+			// Search results might be in an unloaded library, so get items asynchronously and load
+			// necessary data
+			var items = yield Zotero.Items.getAsync(searchResultIDs);
+			yield Zotero.Items.loadDataTypes(items);
 			
 			searchString = searchString.toLowerCase();
 			var collation = Zotero.getLocaleCollation();
@@ -433,7 +442,7 @@ var Zotero_QuickFormat = new function () {
 					}
 				}
 				
-				var libA = a.libraryID ? a.libraryID : 0, libB = b.libraryID ? b.libraryID : 0;
+				var libA = a.libraryID, libB = b.libraryID;
 				if(libA !== libB) {
 					// Sort by number of cites for library
 					if(nCitedItemsFromLibrary[libA] && !nCitedItemsFromLibrary[libB]) {
@@ -489,7 +498,7 @@ var Zotero_QuickFormat = new function () {
 			referenceBox.selectedIndex = selectedIndex;
 			referenceBox.ensureIndexIsVisible(selectedIndex);
 		}
-	}
+	});
 	
 	/**
 	 * Builds a string describing an item. We avoid CSL here for speed.
@@ -1059,7 +1068,7 @@ var Zotero_QuickFormat = new function () {
 		if(qfGuidance) qfGuidance.hide();
 		
 		var keyCode = event.keyCode;
-		if(keyCode === event.DOM_VK_RETURN || keyCode === event.DOM_VK_ENTER) {
+		if (keyCode === event.DOM_VK_RETURN) {
 			event.preventDefault();
 			if(!_bubbleizeSelected() && !_getEditorContent()) {
 				_accept();
@@ -1261,7 +1270,7 @@ var Zotero_QuickFormat = new function () {
 	 */
 	this.onPanelKeyPress = function(event) {
 		var keyCode = event.keyCode;
-		if(keyCode === event.DOM_VK_RETURN || keyCode === event.DOM_VK_ENTER) {
+		if (keyCode === event.DOM_VK_RETURN) {
 			document.getElementById("citation-properties").hidePopup();
 		}
 	};
@@ -1292,15 +1301,23 @@ var Zotero_QuickFormat = new function () {
 	/**
 	 * Show an item in the library it came from
 	 */
-	this.showInLibrary = function() {
+	this.showInLibrary = async function() {
 		var id = panelRefersToBubble.citationItem.id;
 		var pane = Zotero.getActiveZoteroPane();
-		if(pane) {
-			pane.show();
-			pane.selectItem(id);
-		} else {
-			var win = window.open('zotero://select/item/'+id);
+		// Open main window if it's not open (Mac)
+		if (!pane) {
+			let win = Zotero.openMainWindow();
+			await new Zotero.Promise((resolve) => {
+				let onOpen = function () {
+					win.removeEventListener('load', onOpen);
+					resolve();
+				};
+				win.addEventListener('load', onOpen);
+			});
+			pane = win.ZoteroPane;
 		}
+		pane.show();
+		pane.selectItem(id);
 		
 		// Pull window to foreground
 		Zotero.Integration.activate(pane.document.defaultView);

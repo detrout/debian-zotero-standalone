@@ -1,8 +1,8 @@
 /*
-    ***** BEGIN LICENSE BLOCK *****
+	***** BEGIN LICENSE BLOCK *****
 	
-	Copyright (c) 2011  Zotero
-	                    Center for History and New Media
+	Copyright (c) 2017  Zotero
+						Center for History and New Media
 						George Mason University, Fairfax, Virginia, USA
 						http://zotero.org
 	
@@ -18,15 +18,17 @@
 	
 	You should have received a copy of the GNU Affero General Public License
 	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
-    ***** END LICENSE BLOCK *****
+	
+	***** END LICENSE BLOCK *****
 */
+
 "use strict";
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var Zotero;
 const API_VERSION = 3;
+const SERVER_PORT = 23116;
 
 var Comm = new function() {
 	var _observersRegistered = false, _converter, _lastDataListener,
@@ -59,7 +61,7 @@ var Comm = new function() {
 					.createInstance(Components.interfaces.nsIServerSocket);
 		try {
 			// Start main socket listener
-			serv.init(23116, true, -1);
+			serv.init(SERVER_PORT, true, -1);
 			serv.asyncListen({
 				"onSocketAccepted":function(socket, transport) {
 					Zotero.debug("ZoteroOpenOfficeIntegration: Connection received");
@@ -338,15 +340,14 @@ var Comm = new function() {
 			.getService(Components.interfaces.nsIPromptService);
 		var shouldReinstall = ps.confirm(null, "Zotero LibreOffice Integration Error",
 			'The version of the Zotero LibreOffice Integration component installed within '+
-			'LibreOffice, OpenOffice.org, or NeoOffice does not appear to match '+
-			(Zotero.isStandalone ? 'this Zotero Standalone version'
-				: 'the version currently installed within Firefox')+
-			'. Would you like to attempt to reinstall it?\n\n'+
+			'LibreOffice does not appear to match '+
+			'this Zotero Standalone version. '+
+			'Would you like to attempt to reinstall it?\n\n'+
 			'Please ensure your LibreOffice installation is properly detected. If you '+
 			'continue to experience this error, click the "Manual Installation" button '+
 			'within the wizard to show the directory containing the LibreOffice component. '+
-			'Double-click this component or add it from within LibreOffice, OpenOffice.org, or '+
-			'NeoOffice to complete the installation procedure.');
+			'Double-click this component or add it from within LibreOffice '+
+			'to complete the installation procedure.');
 		
 		if(shouldReinstall) {
 			var ZoteroOpenOfficeInstaller = Components.utils.import("resource://zotero-openoffice-integration/installer.jsm").Installer;
@@ -354,7 +355,7 @@ var Comm = new function() {
 		}
 		
 		// We throw this error to avoid displaying another error dialog
-		Zotero.logError("Firefox and OpenOffice.org extension versions are incompatible");
+		Zotero.logError("Zotero and LibreOffice extension versions are incompatible");
 		throw Components.Exception("ExceptionAlreadyDisplayed");
 	}
 };
@@ -366,7 +367,7 @@ var Initializer = function() {
 	Comm.init();
 };
 Initializer.prototype = {
-	classDescription: "Zotero OpenOffice.org Integration Initializer",
+	classDescription: "Zotero LibreOffice Integration Initializer",
 	"classID":Components.ID("{f43193a1-7060-41a3-8e82-481d58b71e6f}"),
 	"contractID":"@zotero.org/Zotero/integration/initializer?agent=OpenOffice;1",
 	"QueryInterface":XPCOMUtils.generateQI([Components.interfaces.nsISupports]),
@@ -374,14 +375,16 @@ Initializer.prototype = {
 };
 
 /**
- * See zoteroIntegration.idl
+ * See integrationTests.js
  */
-var Application = function() {};
+var Application = function() {
+	this.wrappedJSObject = this;
+};
 Application.prototype = {
-	classDescription: "Zotero OpenOffice.org Integration Application",
+	classDescription: "Zotero LibreOffice Integration Application",
 	classID:		Components.ID("{8478cd98-5ba0-4848-925a-75adffff2dbf}"),
 	contractID:		"@zotero.org/Zotero/integration/application?agent=OpenOffice;1",
-	QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports, Components.interfaces.zoteroIntegrationApplication]),
+	QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports]),
 	_xpcom_categories: [{
 		category: "profile-after-change",
 		service: true
@@ -397,19 +400,13 @@ Application.prototype = {
 };
 
 /**
- * See zoteroIntegration.idl
+ * See integrationTests.js
  */
 var Document = function(documentID) {
 	this._documentID = documentID;
-	this.wrappedJSObject = this;
 };
-Document.prototype = {
-	classDescription: "Zotero OpenOffice.org Integration Document",
-	classID:		Components.ID("{e2e05bf9-40d4-4426-b0c9-62abca5be58f}"),
-	contractID:		"@zotero.org/Zotero/integration/document?agent=OpenOffice;1",
-	QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports, Components.interfaces.zoteroIntegrationDocument])
-};
-for each(var method in ["displayAlert", "activate", "canInsertField", "getDocumentData",
+Document.prototype = {};
+for (let method of ["displayAlert", "activate", "canInsertField", "getDocumentData",
 	"setDocumentData", "setBibliographyStyle", "complete"]) {
 	let methodStable = method;
 	Document.prototype[method] = function() {
@@ -424,7 +421,7 @@ Document.prototype.cursorInField = function(fieldType) {
 	return new Field(this._documentID, retVal[0], retVal[1], retVal[2]);
 };
 Document.prototype.insertField = function(fieldType, noteType) {
-	var retVal = Comm.sendCommand("Document_insertField", [this._documentID, fieldType, noteType]);
+	var retVal = Comm.sendCommand("Document_insertField", [this._documentID, fieldType, parseInt(noteType) || 0]);
 	return new Field(this._documentID, retVal[0], retVal[1], retVal[2]);
 };
 Document.prototype.getFields = function(fieldType) {
@@ -445,7 +442,7 @@ Document.prototype.getFieldsAsync = function(fieldType, observer) {
 Document.prototype.convert = function(enumerator, fieldType, noteTypes) {
 	var i = 0;
 	while(enumerator.hasMoreElements()) {
-		Comm.sendCommand("Field_convert", [this._documentID, enumerator.getNext().wrappedJSObject._index, fieldType, noteTypes[i]]);
+		Comm.sendCommand("Field_convert", [this._documentID, enumerator.getNext()._index, fieldType, noteTypes[i]]);
 		i++;
 	}
 };
@@ -474,23 +471,17 @@ FieldEnumerator.prototype = {
 };
 
 /**
- * See zoteroIntegration.idl
+ * See integrationTests.js
  */
 var Field = function(documentID, index, code, noteIndex) {
 	this._documentID = documentID; 
 	this._index = index;
 	this._code = code;
 	this._noteIndex = noteIndex;
-	this.wrappedJSObject = this;
 };
-Field.prototype = {
-	classDescription: "Zotero OpenOffice.org Integration Field",
-	classID:		Components.ID("{82483c48-304c-460e-ab31-fac872f20379}"),
-	contractID:		"@zotero.org/Zotero/integration/field?agent=OpenOffice;1",
-	QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports, Components.interfaces.zoteroIntegrationField])
-};
+Field.prototype = {};
 
-for each(var method in ["delete", "select", "removeCode", "setText", "getText"]) {
+for (let method of ["delete", "select", "removeCode", "setText", "getText"]) {
 	let methodStable = method;
 	Field.prototype[method] = function() {
 		return Comm.sendCommand("Field_"+methodStable,
@@ -508,22 +499,13 @@ Field.prototype.getNoteIndex = function() {
 	return this._noteIndex;
 }
 Field.prototype.equals = function(arg) {
-	return this._index === arg.wrappedJSObject._index;
+	return this._index === arg._index;
 }
 
 var classes = [
 	Initializer,
 	Application,
-	Field,
-	Document
 ];
 
-/**
-* XPCOMUtils.generateNSGetFactory was introduced in Mozilla 2 (Firefox 4).
-* XPCOMUtils.generateNSGetModule is for Mozilla 1.9.2 (Firefox 3.6).
-*/
-if(XPCOMUtils.generateNSGetFactory) {
-	var NSGetFactory = XPCOMUtils.generateNSGetFactory(classes);
-} else {
-	var NSGetModule = XPCOMUtils.generateNSGetModule(classes);
-}
+var NSGetFactory = XPCOMUtils.generateNSGetFactory(classes);
+

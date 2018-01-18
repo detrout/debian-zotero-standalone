@@ -143,7 +143,7 @@ var Zotero_RTFScan = new function() {
 	/**
 	 * Scans file for citations, then proceeds to next wizard page.
 	 */
-	function _scanRTF() {
+	var _scanRTF = Zotero.Promise.coroutine(function* () {
 		// set up globals
 		citations = [];
 		citationItemIDs = {};
@@ -231,7 +231,7 @@ var Zotero_RTFScan = new function() {
 			}
 			if(title) s.addCondition("title", "contains", title);
 			s.addCondition("date", "is", date);
-			var ids = s.search();
+			var ids = yield s.search();
 			Zotero.debug("Mapped to "+ids);
 			citationItemIDs[citationString] = ids;
 			
@@ -239,11 +239,12 @@ var Zotero_RTFScan = new function() {
 				unmappedCitationsChildren.appendChild(_generateItem(citationString, ""));
 				unmappedCitationsItem.hidden = undefined;
 			} else {	// some mapping found
-				var items = Zotero.Items.get(ids);
+				var items = yield Zotero.Items.getAsync(ids);
 				if(items.length > 1) {
 					// check to see how well the author list matches the citation
 					var matchedItems = [];
 					for(var i=0; i<items.length; i++) {
+						yield items[i].loadDataType('creators');
 						if(_matchesItemCreators(creators, items[i])) matchedItems.push(items[i]);
 					}
 					
@@ -275,7 +276,7 @@ var Zotero_RTFScan = new function() {
 		// when scanning is complete, go to citations page
 		document.documentElement.canAdvance = true;
 		document.documentElement.advance();
-	}
+	});
 	
 	function _generateItem(citationString, itemName, accept) {
 		var treeitem = document.createElement('treeitem');
@@ -329,7 +330,7 @@ var Zotero_RTFScan = new function() {
 	
 	function _matchesItemCreator(creator, itemCreator) {
 		// make sure last name matches
-		var lowerLast = itemCreator.ref.lastName.toLowerCase();
+		var lowerLast = itemCreator.lastName.toLowerCase();
 		if(lowerLast != creator.substr(-lowerLast.length).toLowerCase()) return false;
 		
 		// make sure first name matches, if it exists
@@ -347,8 +348,8 @@ var Zotero_RTFScan = new function() {
 					if(initials != itemInitials) return false;
 				} else {
 					// not all initials; verify that the first name matches
-					var firstWord = firstName.substr(0, itemCreator.ref.firstName).toLowerCase();
-					var itemFirstWord = itemCreator.ref.firstName.substr(0, itemCreator.ref.firstName.indexOf(" ")).toLowerCase();
+					var firstWord = firstName.substr(0, itemCreator.firstName).toLowerCase();
+					var itemFirstWord = itemCreator.firstName.substr(0, itemCreator.firstName.indexOf(" ")).toLowerCase();
 					if(firstWord != itemFirstWord) return false;
 				}
 			}
@@ -459,7 +460,7 @@ var Zotero_RTFScan = new function() {
 	 */
 	function _refreshCanAdvance() {
 		var canAdvance = true;
-		for each(var itemList in citationItemIDs) {
+		for (let itemList of citationItemIDs) {
 			if(itemList.length != 1) {
 				canAdvance = false;
 				break;

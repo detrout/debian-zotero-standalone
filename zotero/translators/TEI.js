@@ -19,7 +19,7 @@
 		"Full TEI Document": false,
 		"Export Collections": false
 	},
-	"lastUpdated": "2016-05-25 15:08:00"
+	"lastUpdated": "2017-11-18 10:45:00"
 }
 
 // ********************************************************************
@@ -164,7 +164,9 @@ function generateItem(item, teiDoc) {
 		"bookSection": true,
 		"magazineArticle": true,
 		"newspaperArticle": true,
-		"conferencePaper": true
+		"conferencePaper": true,
+		"encyclopediaArticle": true,
+		"dictionaryEntry": true
 	};
 
 	var isAnalytic = analyticItemTypes[item.itemType] ? true : false;
@@ -207,31 +209,24 @@ function generateItem(item, teiDoc) {
 		if (item.title) {
 			analyticTitle.appendChild(teiDoc.createTextNode(replaceFormatting(item.title)));
 		}
-
-		// book title
-		if (item.bookTitle) {
-			var bookTitle = teiDoc.createElementNS(ns.tei, "title");
-			bookTitle.setAttribute("level", "m");
-			bookTitle.appendChild(teiDoc.createTextNode(replaceFormatting(item.bookTitle)));
-			monogr.appendChild(bookTitle);
-		}
-		// proceedings title
-		else if (item.proceedingsTitle) {
-			var proTitle = teiDoc.createElementNS(ns.tei, "title");
-			proTitle.setAttribute("level", "m");
-			proTitle.appendChild(teiDoc.createTextNode(replaceFormatting(item.proceedingsTitle)));
-			monogr.appendChild(proTitle);
+		//A DOI is presumably for the article, not the journal.
+		if (item.DOI) {
+			var idno = teiDoc.createElementNS(ns.tei, "idno");
+			idno.setAttribute("type", "DOI");
+			idno.appendChild(teiDoc.createTextNode(item.DOI));
+			analytic.appendChild(idno);
 		}
 
-		// other publication title
-		else if (item.publicationTitle) {
+		// publication title
+		var publicationTitle = item.bookTitle || item.proceedingsTitle || item.encyclopediaTitle || item.dictionaryTitle || item.publicationTitle;
+		if (publicationTitle) {
 			var pubTitle = teiDoc.createElementNS(ns.tei, "title");
 			if (item.itemType == "journalArticle") {
 				pubTitle.setAttribute("level", "j");
 			} else {
 				pubTitle.setAttribute("level", "m");
 			}
-			pubTitle.appendChild(teiDoc.createTextNode(replaceFormatting(item.publicationTitle)));
+			pubTitle.appendChild(teiDoc.createTextNode(replaceFormatting(publicationTitle)));
 			monogr.appendChild(pubTitle);
 		}
 
@@ -260,7 +255,15 @@ function generateItem(item, teiDoc) {
 			shortTitle.appendChild(teiDoc.createTextNode(item.shortTitle));
 			monogr.appendChild(shortTitle);
 		}
+		//A DOI where there's no analytic must be for the monogr.
+		if (item.DOI) {
+			var idno = teiDoc.createElementNS(ns.tei, "idno");
+			idno.setAttribute("type", "DOI");
+			idno.appendChild(teiDoc.createTextNode(item.DOI));
+			analytic.appendChild(idno);
+		}
 	}
+
 
 	// add name of conference
 	if (item.conferenceName) {
@@ -301,6 +304,28 @@ function generateItem(item, teiDoc) {
 			seriesNumber.appendChild(teiDoc.createTextNode(item.seriesNumber));
 			series.appendChild(seriesNumber);
 		}
+	}
+
+
+	//Other canonical ref nos come right after the title(s) in monogr.
+	if (item.ISBN) {
+		var idno = teiDoc.createElementNS(ns.tei, "idno");
+		idno.setAttribute("type", "ISBN");
+		idno.appendChild(teiDoc.createTextNode(item.ISBN));
+		monogr.appendChild(idno);
+	}
+	if (item.ISSN) {
+		var idno = teiDoc.createElementNS(ns.tei, "idno");
+		idno.setAttribute("type", "ISSN");
+		idno.appendChild(teiDoc.createTextNode(item.ISSN));
+		monogr.appendChild(idno);
+	}
+
+	if (item.callNumber) {
+		var idno = teiDoc.createElementNS(ns.tei, "idno");
+		idno.setAttribute("type", "callNumber");
+		idno.appendChild(teiDoc.createTextNode(item.callNumber));
+		monogr.appendChild(idno);
 	}
 
 	// creators are all people only remotely involved into the creation of
@@ -470,32 +495,6 @@ function generateItem(item, teiDoc) {
 			tags.appendChild(tag);
 		}
 		bibl.appendChild(tags);
-	}
-
-	// the canonical reference numbers
-	if (item.ISBN) {
-		var idno = teiDoc.createElementNS(ns.tei, "idno");
-		idno.setAttribute("type", "ISBN");
-		idno.appendChild(teiDoc.createTextNode(item.ISBN));
-		bibl.appendChild(idno);
-	}
-	if (item.ISSN) {
-		var idno = teiDoc.createElementNS(ns.tei, "idno");
-		idno.setAttribute("type", "ISSN");
-		idno.appendChild(teiDoc.createTextNode(item.ISSN));
-		bibl.appendChild(idno);
-	}
-	if (item.DOI) {
-		var idno = teiDoc.createElementNS(ns.tei, "idno");
-		idno.setAttribute("type", "DOI");
-		idno.appendChild(teiDoc.createTextNode(item.DOI));
-		bibl.appendChild(idno);
-	}
-	if (item.callNumber) {
-		var idno = teiDoc.createElementNS(ns.tei, "idno");
-		idno.setAttribute("type", "callNumber");
-		idno.appendChild(teiDoc.createTextNode(item.callNumber));
-		bibl.appendChild(idno);
 	}
 	return bibl;
 }

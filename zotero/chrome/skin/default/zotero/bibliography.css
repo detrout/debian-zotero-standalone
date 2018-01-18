@@ -1,7 +1,7 @@
 #style-listbox
 {
-	height: 72pt;
-	width: 300pt;
+	height: 19em;
+	width: 325pt;
 }
 
 radio:not(:first-child)

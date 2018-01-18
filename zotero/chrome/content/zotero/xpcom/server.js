@@ -91,7 +91,7 @@ Zotero.Server = new function() {
 	this.decodeQueryString = function(queryString) {
 		var splitData = queryString.split("&");
 		var decodedData = {};
-		for each(var variable in splitData) {
+		for (let variable of splitData) {
 			var splitIndex = variable.indexOf("=");
 			decodedData[decodeURIComponent(variable.substr(0, splitIndex))] = decodeURIComponent(variable.substr(splitIndex+1));
 		}
@@ -237,6 +237,7 @@ Zotero.Server.DataListener.prototype._headerFinished = function() {
 	Zotero.debug(this.header, 5);
 	
 	const methodRe = /^([A-Z]+) ([^ \r\n?]+)(\?[^ \r\n]+)?/;
+	const hostRe = /[\r\n]Host: *(localhost|127\.0\.0\.1)(:[0-9]+)?[\r\n]/i;
 	const contentTypeRe = /[\r\n]Content-Type: *([^ \r\n]+)/i;
 	
 	if(!Zotero.isServer) {
@@ -248,6 +249,12 @@ Zotero.Server.DataListener.prototype._headerFinished = function() {
 			const bookmarkletRe = /[\r\n]Zotero-Bookmarklet: *([^ \r\n]+)/i;
 			var m = bookmarkletRe.exec(this.header);
 			if(m) this.origin = "https://www.zotero.org";
+		}
+		
+		// Make sure the Host header is set to localhost/127.0.0.1 to prevent DNS rebinding attacks
+		if (!hostRe.exec(this.header)) {
+			this._requestFinished(this._generateResponse(400, "text/plain", "Invalid Host header\n"));
+			return;
 		}
 	}
 	
@@ -275,7 +282,7 @@ Zotero.Server.DataListener.prototype._headerFinished = function() {
 	if(method[1] == "HEAD" || method[1] == "OPTIONS") {
 		this._requestFinished(this._generateResponse(200));
 	} else if(method[1] == "GET") {
-		this._processEndpoint("GET", null);
+		this._processEndpoint("GET", null); // async
 	} else if(method[1] == "POST") {
 		const contentLengthRe = /[\r\n]Content-Length: +([0-9]+)/i;
 		
@@ -315,7 +322,7 @@ Zotero.Server.DataListener.prototype._bodyData = function() {
 		}		
 		
 		// handle envelope
-		this._processEndpoint("POST", this.body);
+		this._processEndpoint("POST", this.body); // async
 	}
 }
 	
@@ -351,7 +358,7 @@ Zotero.Server.DataListener.prototype._generateResponse = function(status, conten
 /**
  * Generates a response based on calling the function associated with the endpoint
  */
-Zotero.Server.DataListener.prototype._processEndpoint = function(method, postData) {
+Zotero.Server.DataListener.prototype._processEndpoint = Zotero.Promise.coroutine(function* (method, postData) {
 	try {
 		var endpoint = new this.endpoint;
 		
@@ -377,21 +384,34 @@ Zotero.Server.DataListener.prototype._processEndpoint = function(method, postDat
 		if(postData && this.contentType) {
 			// check that endpoint supports contentType
 			var supportedDataTypes = endpoint.supportedDataTypes;
-			if(supportedDataTypes && supportedDataTypes.indexOf(this.contentType) === -1) {
+			if(supportedDataTypes && supportedDataTypes != '*' 
+				&& supportedDataTypes.indexOf(this.contentType) === -1) {
+				
 				this._requestFinished(this._generateResponse(400, "text/plain", "Endpoint does not support content-type\n"));
 				return;
 			}
 			
-			// decode JSON or urlencoded post data, and pass through anything else
-			if(supportedDataTypes && this.contentType === "application/json") {
+			// decode content-type post data
+			if(this.contentType === "application/json") {
 				try {
 					decodedData = JSON.parse(postData);
 				} catch(e) {
 					this._requestFinished(this._generateResponse(400, "text/plain", "Invalid JSON provided\n"));
 					return;
 				}
-			} else if(supportedDataTypes && this.contentType === "application/x-www-form-urlencoded") {				
+			} else if(this.contentType === "application/x-www-form-urlencoded") {				
 				decodedData = Zotero.Server.decodeQueryString(postData);
+			} else if(this.contentType === "multipart/form-data") {
+				let boundary = /boundary=([^\s]*)/i.exec(this.header);
+				if (!boundary) {
+					return this._requestFinished(this._generateResponse(400, "text/plain", "Invalid multipart/form-data provided\n"));
+				}
+				boundary = '--' + boundary[1];
+				try {
+					decodedData = this._decodeMultipartData(postData, boundary);
+				} catch(e) {
+					return this._requestFinished(this._generateResponse(400, "text/plain", "Invalid multipart/form-data provided\n"));
+				}
 			} else {
 				decodedData = postData;
 			}
@@ -403,8 +423,55 @@ Zotero.Server.DataListener.prototype._processEndpoint = function(method, postDat
 			me._requestFinished(me._generateResponse(code, contentType, arg));
 		}
 		
-		// pass to endpoint
-		if((endpoint.init.length ? endpoint.init.length : endpoint.init.arity) === 3) {
+		// Pass to endpoint
+		//
+		// Single-parameter endpoint
+		//   - Takes an object with 'method', 'pathname', 'query', 'headers', and 'data'
+		//   - Returns a status code, an array containing [statusCode, contentType, body],
+		//     or a promise for either
+		if (endpoint.init.length === 1
+				// Return value from Zotero.Promise.coroutine()
+				|| endpoint.init.length === 0) {
+			let headers = {};
+			let headerLines = this.header.trim().split(/\r\n/);
+			for (let line of headerLines) {
+				line = line.trim();
+				let pos = line.indexOf(':');
+				if (pos == -1) {
+					continue;
+				}
+				let k = line.substr(0, pos);
+				let v = line.substr(pos + 1).trim();
+				headers[k] = v;
+			}
+			
+			let maybePromise = endpoint.init({
+				method,
+				pathname: this.pathname,
+				query: this.query ? Zotero.Server.decodeQueryString(this.query.substr(1)) : {},
+				headers,
+				data: decodedData
+			});
+			let result;
+			if (maybePromise.then) {
+				result = yield maybePromise;
+			}
+			else {
+				result = maybePromise;
+			}
+			if (Number.isInteger(result)) {
+				sendResponseCallback(result);
+			}
+			else {
+				sendResponseCallback(...result);
+			}
+		}
+		// Two-parameter endpoint takes data and a callback
+		else if (endpoint.init.length === 2) {
+			endpoint.init(decodedData, sendResponseCallback);
+		}
+		// Three-parameter endpoint takes a URL, data, and a callback
+		else {
 			const uaRe = /[\r\n]User-Agent: +([^\r\n]+)/i;
 			var m = uaRe.exec(this.header);
 			var url = {
@@ -412,17 +479,14 @@ Zotero.Server.DataListener.prototype._processEndpoint = function(method, postDat
 				"query":this.query ? Zotero.Server.decodeQueryString(this.query.substr(1)) : {},
 				"userAgent":m && m[1]
 			};
-			
 			endpoint.init(url, decodedData, sendResponseCallback);
-		} else {
-			endpoint.init(decodedData, sendResponseCallback);
 		}
 	} catch(e) {
 		Zotero.debug(e);
 		this._requestFinished(this._generateResponse(500), "text/plain", "An error occurred\n");
 		throw e;
 	}
-}
+});
 
 /*
  * returns HTTP data from a request
@@ -452,6 +516,40 @@ Zotero.Server.DataListener.prototype._requestFinished = function(response) {
 		intlStream.close();
 	}
 }
+
+Zotero.Server.DataListener.prototype._decodeMultipartData = function(data, boundary) {
+	var contentDispositionRe = /^Content-Disposition:\s*(.*)$/i;
+	var results = [];
+	data = data.split(boundary);
+	// Ignore pre first boundary and post last boundary
+	data = data.slice(1, data.length-1);
+	for (let field of data) {
+		let fieldData = {};
+		field = field.trim();
+		// Split header and body
+		let unixHeaderBoundary = field.indexOf("\n\n");
+		let windowsHeaderBoundary = field.indexOf("\r\n\r\n");
+		if (unixHeaderBoundary < windowsHeaderBoundary && unixHeaderBoundary != -1) {
+			fieldData.header = field.slice(0, unixHeaderBoundary);
+			fieldData.body = field.slice(unixHeaderBoundary+2);
+		} else if (windowsHeaderBoundary != -1) {
+			fieldData.header = field.slice(0, windowsHeaderBoundary);
+			fieldData.body = field.slice(windowsHeaderBoundary+4);
+		} else {
+			throw new Error('Malformed multipart/form-data body');
+		}
+		
+		let contentDisposition = contentDispositionRe.exec(fieldData.header);
+		if (contentDisposition) {
+			for (let nameVal of contentDisposition[1].split(';')) {
+				nameVal.split('=');
+				fieldData[nameVal[0]] = nameVal.length > 1 ? nameVal[1] : null;
+			}
+		}
+		results.push(fieldData);
+	}
+	return results;
+};
 
 
 /**

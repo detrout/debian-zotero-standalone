@@ -21,7 +21,6 @@ set -euo pipefail
 
 CALLDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . "$CALLDIR/config.sh"
-DOWNLOAD_URL="https://ftp.mozilla.org/pub/firefox/releases/$GECKO_VERSION"
 
 function usage {
 	cat >&2 <<DONE
@@ -60,11 +59,9 @@ if [[ $BUILD_MAC == 0 ]] && [[ $BUILD_WIN32 == 0 ]] && [[ $BUILD_LINUX == 0 ]]; 
 	usage
 fi
 
-# Modify AddonConstants.jsm in omni.ja to allow unsigned add-ons
 #
-# Theoretically there should be other ways of doing this without modifying omni.ja
-# (e.g., an 'override' statement in chrome.manifest, a enterprise config.js file that clears
-# SIGNED_TYPES in XPIProvider.jsm), but I couldn't get them to work.
+# Make various modifications to omni.ja
+#
 function modify_omni {
 	mkdir omni
 	mv omni.ja omni
@@ -74,12 +71,31 @@ function modify_omni {
 	python2.7 "$CALLDIR/scripts/optimizejars.py" --deoptimize ./ ./ ./
 	unzip omni.ja
 	rm omni.ja
+	
+	# Modify AddonConstants.jsm in omni.ja to allow unsigned add-ons
+	#
+	# Theoretically there should be other ways of doing this (e.g., an 'override' statement in
+	# chrome.manifest, an enterprise config.js file that clears SIGNED_TYPES in XPIProvider.jsm),
+	# but I couldn't get them to work.
 	perl -pi -e 's/value: true/value: false/' modules/addons/AddonConstants.jsm
 	# Delete binary version of file
-	rm jsloader/resource/gre/modules/addons/AddonConstants.jsm
+	rm -f jsloader/resource/gre/modules/addons/AddonConstants.jsm
+	
+	# Disable transaction timeout
+	perl -pi -e 's/let timeoutPromise/\/*let timeoutPromise/' modules/Sqlite.jsm
+	perl -pi -e 's/return Promise.race\(\[transactionPromise, timeoutPromise\]\);/*\/return transactionPromise;/' modules/Sqlite.jsm
+	rm -f jsloader/resource/gre/modules/Sqlite.jsm
+	
 	# Disable unwanted components
 	cat components/components.manifest | grep -vi telemetry > components/components2.manifest
 	mv components/components2.manifest components/components.manifest
+	
+	# Change text in update dialog
+	perl -pi -e 's/A security and stability update for/A new version of/' chrome/en-US/locale/en-US/mozapps/update/updates.properties
+	perl -pi -e 's/updateType_major=New Version/updateType_major=New Major Version/' chrome/en-US/locale/en-US/mozapps/update/updates.properties
+	perl -pi -e 's/updateType_minor=Security Update/updateType_minor=New Version/' chrome/en-US/locale/en-US/mozapps/update/updates.properties
+	perl -pi -e 's/update for &brandShortName; as soon as possible/update as soon as possible/' chrome/en-US/locale/en-US/mozapps/update/updates.dtd
+	
 	zip -qr9XD omni.ja *
 	mv omni.ja ..
 	cd ..
@@ -87,11 +103,23 @@ function modify_omni {
 	rm -rf omni
 }
 
-rm -rf xulrunner
-mkdir xulrunner
+# Add devtools server from browser omni.ja
+function extract_devtools {
+	set +e
+	unzip browser/omni.ja 'chrome/devtools/*' -d devtools-files
+	unzip browser/omni.ja 'chrome/en-US/locale/en-US/devtools/*' -d devtools-files
+	mv devtools-files/chrome/en-US/locale devtools-files/chrome
+	rmdir devtools-files/chrome/en-US
+	unzip browser/omni.ja 'components/interfaces.xpt' -d devtools-files
+	set -e
+}
+
+mkdir -p xulrunner
 cd xulrunner
 
 if [ $BUILD_MAC == 1 ]; then
+	GECKO_VERSION="$GECKO_VERSION_MAC"
+	DOWNLOAD_URL="https://ftp.mozilla.org/pub/firefox/releases/$GECKO_VERSION"
 	rm -rf Firefox.app
 	
 	curl -O "$DOWNLOAD_URL/mac/en-US/Firefox%20$GECKO_VERSION.dmg"
@@ -104,12 +132,16 @@ if [ $BUILD_MAC == 1 ]; then
 	
 	pushd Firefox.app/Contents/Resources
 	modify_omni
+	extract_devtools
 	popd
 	
 	rm "Firefox%20$GECKO_VERSION.dmg"
 fi
 
 if [ $BUILD_WIN32 == 1 ]; then
+	GECKO_VERSION="$GECKO_VERSION_WIN"
+	DOWNLOAD_URL="https://ftp.mozilla.org/pub/firefox/releases/$GECKO_VERSION"
+	
 	XDIR=firefox-win32
 	rm -rf $XDIR
 	mkdir $XDIR
@@ -123,12 +155,15 @@ if [ $BUILD_WIN32 == 1 ]; then
 	
 	cd $XDIR
 	modify_omni
+	extract_devtools
 	cd ..
 	
 	rm "Firefox%20Setup%20$GECKO_VERSION.exe"
 fi
 
 if [ $BUILD_LINUX == 1 ]; then
+	GECKO_VERSION="$GECKO_VERSION_LINUX"
+	DOWNLOAD_URL="https://ftp.mozilla.org/pub/firefox/releases/$GECKO_VERSION"
 	rm -rf firefox
 	
 	curl -O "$DOWNLOAD_URL/linux-i686/en-US/firefox-$GECKO_VERSION.tar.bz2"
@@ -137,6 +172,7 @@ if [ $BUILD_LINUX == 1 ]; then
 	mv firefox firefox-i686
 	cd firefox-i686
 	modify_omni
+	extract_devtools
 	cd ..
 	rm "firefox-$GECKO_VERSION.tar.bz2"
 	
@@ -146,6 +182,9 @@ if [ $BUILD_LINUX == 1 ]; then
 	mv firefox firefox-x86_64
 	cd firefox-x86_64
 	modify_omni
+	extract_devtools
 	cd ..
 	rm "firefox-$GECKO_VERSION.tar.bz2"
 fi
+
+echo Done

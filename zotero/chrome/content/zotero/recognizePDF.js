@@ -32,7 +32,6 @@
  * @namespace
  */
 var Zotero_RecognizePDF = new function() {
-	Components.utils.import("resource://zotero/q.js");
 	var _progressWindow, _progressIndicator;
 	
 	/**
@@ -40,8 +39,9 @@ var Zotero_RecognizePDF = new function() {
 	 * @returns {Boolean} True if the PDF can be recognized, false if it cannot be
 	 */
 	this.canRecognize = function(/**Zotero.Item*/ item) {
-		return (item.attachmentMIMEType &&
-			item.attachmentMIMEType == "application/pdf" && !item.getSource());
+		return item.attachmentContentType
+			&& item.attachmentContentType == "application/pdf"
+			&& item.isTopLevelItem();
 	}
 	
 	/**
@@ -64,67 +64,75 @@ var Zotero_RecognizePDF = new function() {
 	 * Retrieves metadata for a PDF and saves it as an item
 	 *
 	 * @param {nsIFile} file The PDF file to retrieve metadata for
-	 * @param {Integer|null} libraryID The library in which to save the PDF
+	 * @param {Integer} libraryID The library in which to save the PDF
 	 * @param {Function} stopCheckCallback Function that returns true if the
 	 *                   process is to be interrupted
 	 * @return {Promise} A promise resolved when PDF metadata has been retrieved
 	 */
-	this.recognize = function(file, libraryID, stopCheckCallback) {
+	this.recognize = Zotero.Promise.coroutine(function* (file, libraryID, stopCheckCallback) {
 		const MAX_PAGES = 15;
 		var me = this;
 		
-		return _extractText(file, MAX_PAGES).then(function(lines) {
-			// Look for DOI - Use only first 80 lines to avoid catching article references
-			var allText = lines.join("\n"),
-				firstChunk = lines.slice(0,80).join('\n'),
-				doi = Zotero.Utilities.cleanDOI(firstChunk),
-				promise;
-			Zotero.debug(allText);
-			
-			if(!doi) {
-				// Look for a JSTOR stable URL, which can be converted to a DOI by prepending 10.2307
-				doi = firstChunk.match(/www.\jstor\.org\/stable\/(\S+)/i);
-				if(doi) {
-					doi = Zotero.Utilities.cleanDOI(
-						doi[1].indexOf('10.') == 0 ? doi[1] : '10.2307/' + doi[1]
-					);
-				}
-			}
-			
+		var lines = yield _extractText(file, MAX_PAGES);
+		// Look for DOI - Use only first 80 lines to avoid catching article references
+		var allText = lines.join("\n"),
+			firstChunk = lines.slice(0,80).join('\n'),
+			doi = Zotero.Utilities.cleanDOI(firstChunk),
+			promise;
+		Zotero.debug(allText);
+		
+		if(!doi) {
+			// Look for a JSTOR stable URL, which can be converted to a DOI by prepending 10.2307
+			doi = firstChunk.match(/www.\jstor\.org\/stable\/(\S+)/i);
 			if(doi) {
-				// Look up DOI
-				Zotero.debug("RecognizePDF: Found DOI: "+doi);
-				
-				var translateDOI = new Zotero.Translate.Search();
-				translateDOI.setTranslator("11645bd1-0420-45c1-badb-53fb41eeb753");
-				translateDOI.setSearch({"itemType":"journalArticle", "DOI":doi});
-				promise = _promiseTranslate(translateDOI, libraryID);
-			} else {
-				promise = Q.reject("No DOI found in text");
+				doi = Zotero.Utilities.cleanDOI(
+					doi[1].indexOf('10.') == 0 ? doi[1] : '10.2307/' + doi[1]
+				);
 			}
+		}
+		
+		var newItem;
+		if (doi) {
+			// Look up DOI
+			Zotero.debug("RecognizePDF: Found DOI: "+doi);
 			
-			return promise
-				// Look for ISBNs if no DOI
-				.fail(function(error) {
-					Zotero.debug("RecognizePDF: " + error);
-					var isbns = _findISBNs(allText);
-					if (isbns.length) {
-						Zotero.debug("RecognizePDF: Found ISBNs: " + isbns);
-						
-						var translate = new Zotero.Translate.Search();
-						translate.setSearch({"itemType":"book", "ISBN":isbns[0]});
-						return _promiseTranslate(translate, libraryID);
-					} else {
-						return Q.reject("No ISBN found in text.");
-					}
-				})
+			var translateDOI = new Zotero.Translate.Search();
+			translateDOI.setTranslator("11645bd1-0420-45c1-badb-53fb41eeb753");
+			translateDOI.setSearch({"itemType":"journalArticle", "DOI":doi});
+			try {
+				newItem = yield _promiseTranslate(translateDOI, libraryID);
+				return newItem;
+			}
+			catch (e) {
+				Zotero.debug("RecognizePDF: " + e);
+			}
+		}
+		else {
+			Zotero.debug("RecognizePDF: No DOI found in text");
+		}
+		
+		// Look for ISBNs if no DOI
+		var isbns = _findISBNs(allText);
+		if (isbns.length) {
+			Zotero.debug("RecognizePDF: Found ISBNs: " + isbns);
+			
+			var translate = new Zotero.Translate.Search();
+			translate.setSearch({"itemType":"book", "ISBN":isbns[0]});
+			try {
+				newItem = yield _promiseTranslate(translate, libraryID);
+				return newItem;
+			}
+			catch (e) {
 				// If no DOI or ISBN, query Google Scholar
-				.fail(function(error) {
-					Zotero.debug("RecognizePDF: " + error);
-					return me.GSFullTextSearch.findItem(lines, libraryID, stopCheckCallback);
-				});
-		});
-	}
+				Zotero.debug("RecognizePDF: " + e);
+			}
+		}
+		else {
+			Zotero.debug("RecognizePDF: No ISBN found in text");
+		}
+		
+		return this.GSFullTextSearch.findItem(lines, libraryID, stopCheckCallback);
+	});
 	
 	/**
 	 * Get text from a PDF
@@ -133,7 +141,7 @@ var Zotero_RecognizePDF = new function() {
 	 * @return {Promise}
 	 */
 	function _extractText(file, pages) {
-		var cacheFile = Zotero.getZoteroDirectory();
+		var cacheFile = Zotero.File.pathToFile(Zotero.DataDirectory.dir);
 		cacheFile.append("recognizePDFcache.txt");
 		if(cacheFile.exists()) {
 			cacheFile.remove(false);
@@ -152,7 +160,7 @@ var Zotero_RecognizePDF = new function() {
 			try {
 				var inputStream = Components.classes["@mozilla.org/network/file-input-stream;1"]
 					.createInstance(Components.interfaces.nsIFileInputStream);
-				inputStream.init(cacheFile, 0x01, 0664, 0);
+				inputStream.init(cacheFile, 0x01, 0o664, 0);
 				try {
 					var intlStream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
 						.createInstance(Components.interfaces.nsIConverterInputStream);
@@ -183,8 +191,7 @@ var Zotero_RecognizePDF = new function() {
 	 * Attach appropriate handlers to a Zotero.Translate instance and begin translation
 	 * @return {Promise}
 	 */
-	function _promiseTranslate(translate, libraryID) {
-		var deferred = Q.defer();
+	var _promiseTranslate = Zotero.Promise.coroutine(function* (translate, libraryID) {
 		translate.setHandler("select", function(translate, items, callback) {
 			for(var i in items) {
 				var obj = {};
@@ -193,7 +200,7 @@ var Zotero_RecognizePDF = new function() {
 				return;
 			}
 		});
-		translate.setHandler("done", function(translate, success) {
+		/*translate.setHandler("done", function(translate, success) {
 			if(success && translate.newItems.length) {
 				deferred.resolve(translate.newItems[0]);
 			} else {
@@ -202,10 +209,16 @@ var Zotero_RecognizePDF = new function() {
 					: "Could not find a translator for given search item"
 				);
 			}
+		});*/
+		var newItems = yield translate.translate({
+			libraryID,
+			saveAttachments: false
 		});
-		translate.translate(libraryID, false);
-		return deferred.promise;
-	}
+		if (newItems.length) {
+			return newItems[0];
+		}
+		throw new Error("No items found");
+	});
 	
 	/**
 	 * Search ISBNs in text
@@ -333,16 +346,14 @@ var Zotero_RecognizePDF = new function() {
 			this._progressWindow.addEventListener("keypress", this._keypressCancelHandler);
 			this._progressWindow.addEventListener("close", this._cancelHandler, false);
 			Zotero_RecognizePDF.GSFullTextSearch.resetQueryLimit();
-			this._recognizeItem();
+			return this._recognizeItem();
 		},
 
 		/**
 		 * Shifts an item off of this._items and recognizes it, then calls itself again if there are more
 		 * @private
 		 */
-		"_recognizeItem": function() {
-			Components.utils.import("resource://zotero/q.js");
-			
+		"_recognizeItem": Zotero.Promise.coroutine(function* () {
 			const SUCCESS_IMAGE = "chrome://zotero/skin/tick.png";
 			const FAILURE_IMAGE = "chrome://zotero/skin/cross.png";
 			const LOADING_IMAGE = "chrome://global/skin/icons/loading_16.png";
@@ -369,51 +380,68 @@ var Zotero_RecognizePDF = new function() {
 			
 			var file = item.getFile(), me = this;
 			
-			(file
-			? Zotero_RecognizePDF.recognize(file, item.libraryID, function() { return me._stopped; })
-			: Q.reject(new Zotero.Exception.Alert("recognizePDF.fileNotFound")))
-			.then(function(newItem) {
-				// If already stopped, delete
-				if(me._stopped) {
-					Zotero.Items.erase(newItem.id);
-					throw new Zotero.Exception.Alert('recognizePDF.stopped');
-				}
-				
-				// put new item in same collections as the old one
-				var itemCollections = item.getCollections();
-				for(var j=0; j<itemCollections.length; j++) {
-					var collection = Zotero.Collections.get(itemCollections[j]);
-					collection.addItem(newItem.id);
-				}
-				
-				// put old item as a child of the new item
-				item.setSource(newItem.id);
-				item.save();
-				
-				itemTitle.setAttribute("label", newItem.getField("title"));
-				itemIcon.setAttribute("src", SUCCESS_IMAGE);
-				me._rowIDs[rowNumber] = newItem.id;
-				
-				me._recognizeItem();
-			})
-			.catch(function(error) {
-				Zotero.debug(error);
-				Zotero.logError(error);
+			try {
+				if (file) {
+					let newItem = yield Zotero_RecognizePDF.recognize(
+						file,
+						item.libraryID,
+						() => this._stopped
+					);
+					
+					// If already stopped, delete
+					if (this._stopped) {
+						yield Zotero.Items.erase(newItem.id);
+						throw new Zotero.Exception.Alert('recognizePDF.stopped');
+					}
+					
+					// put new item in same collections as the old one
+					let itemCollections = item.getCollections();
+					yield Zotero.DB.executeTransaction(function* () {
+						for (let i = 0; i < itemCollections.length; i++) {
+							let collection = Zotero.Collections.get(itemCollections[i]);
+							yield collection.addItem(newItem.id);
+						}
 
-				itemTitle.setAttribute("label", error instanceof Zotero.Exception.Alert ? error.message : Zotero.getString("recognizePDF.error"));
+						// put old item as a child of the new item
+						item.parentID = newItem.id;
+						yield item.save();
+					});
+					
+					itemTitle.setAttribute("label", newItem.getField("title"));
+					itemIcon.setAttribute("src", SUCCESS_IMAGE);
+					this._rowIDs[rowNumber] = newItem.id;
+					
+					return this._recognizeItem();
+				}
+				else {
+					throw new Zotero.Exception.Alert("recognizePDF.fileNotFound");
+				}
+			}
+			catch (e) {
+				Zotero.logError(e);
+
+				itemTitle.setAttribute(
+					"label",
+					e instanceof Zotero.Exception.Alert
+						? e.message
+						: Zotero.getString("recognizePDF.error")
+				);
 				itemIcon.setAttribute("src", FAILURE_IMAGE);
 				
 				// Don't show "completed" label if stopped on last item
-				if(me._stopped && !me._items.length) {
-					me._done(true);
+				if (this._stopped && !this._items.length) {
+					this._done(true);
 				} else {
-					me._recognizeItem();
+					return this._recognizeItem();
 				}
-			}).finally(function() {
+			}
+			finally {
 				// scroll to this item
-				me._progressWindow.document.getElementById("tree").treeBoxObject.scrollToRow(Math.max(0, me._itemTotal-me._items.length-4));
-			}).done();
-		},
+				this._progressWindow.document.getElementById("tree").treeBoxObject.scrollToRow(
+					Math.max(0, this._itemTotal - this._items.length - 4)
+				);
+			}
+		}),
 
 		/**
 		 * Cleans up after items are recognized, disabling the cancel button and
@@ -525,10 +553,10 @@ var Zotero_RecognizePDF = new function() {
 		this.findItem = function(lines, libraryID, stopCheckCallback) {
 			if(!inProgress && queryLimitReached) {
 				// There's no queue, so we can reject immediately
-				return Q.reject(new Zotero.Exception.Alert("recognizePDF.limit"));
+				return Zotero.Promise.reject(new Zotero.Exception.Alert("recognizePDF.limit"));
 			}
 			
-			var deferred = Q.defer();
+			var deferred = Zotero.Promise.defer();
 			queue.push({
 				deferred: deferred,
 				lines: lines,
@@ -573,8 +601,8 @@ var Zotero_RecognizePDF = new function() {
 				}
 				
 				item.deferred.resolve(
-					Q.try(getGoodLines, item.lines)
-					.then(function(lines) {
+					Zotero.Promise.try(function () {
+						var lines = getGoodLines(item.lines);
 						return queryGoogle(lines, item.libraryID, 3); // Try querying 3 times
 					})
 					.finally(function() { _processQueue(true); })
@@ -636,7 +664,7 @@ var Zotero_RecognizePDF = new function() {
 		 * @param {Integer} tries Number of queries to attempt before giving up
 		 * @return {Promise} A promise resolved when PDF metadata has been retrieved
 		 */
-		function queryGoogle(goodLines, libraryID, tries) {
+		var queryGoogle = Zotero.Promise.coroutine(function* (goodLines, libraryID, tries) {
 			if(tries <= 0) throw new Zotero.Exception.Alert("recognizePDF.noMatches");
 			
 			// Take the relevant parts of some lines (exclude hyphenated word)
@@ -669,24 +697,27 @@ var Zotero_RecognizePDF = new function() {
 			
 			Zotero.debug("RecognizePDF: Query string " + queryString);
 			
-			var url = "http://scholar.google.com/scholar?q="+encodeURIComponent(queryString)+"&hl=en&lr=&btnG=Search",
+			var url = "https://scholar.google.com/scholar?q="+encodeURIComponent(queryString)+"&hl=en&lr=&btnG=Search",
 				delay = GOOGLE_SCHOLAR_QUERY_DELAY - (Date.now() - Zotero.HTTP.lastGoogleScholarQueryTime);
 
 			// Delay 
-			return (delay > 0 ? Q.delay(delay) : Q())
-			.then(function() {
-				Zotero.HTTP.lastGoogleScholarQueryTime = Date.now();
-				return Zotero.HTTP.promise("GET", url, {"responseType":"document"})
-			})
-			.then(function(xmlhttp) {
-				return _checkCaptchaOK(xmlhttp, 3);
-			},
-			function(e) {
-				return _checkCaptchaError(e, 3);
-			})
-			.then(function(xmlhttp) {
-				var doc = xmlhttp.response,
-					deferred = Q.defer(),
+			if (delay > 0) {
+				yield Zotero.Promise.delay(delay);
+			}
+			Zotero.HTTP.lastGoogleScholarQueryTime = Date.now();
+			try {
+				let xmlhttp = yield Zotero.HTTP.request("GET", url, { "responseType": "document" })
+					.then(
+						function (xmlhttp) {
+							return _checkCaptchaOK(xmlhttp, 3);
+						},
+						function (e) {
+							return _checkCaptchaError(e, 3);
+						}
+					);
+				
+				let doc = xmlhttp.response,
+					deferred = Zotero.Promise.defer(),
 					translate = new Zotero.Translate.Web();
 				
 				translate.setTranslator("57a00950-f0d1-4b41-b6ba-44ff0fc30289");
@@ -695,7 +726,7 @@ var Zotero_RecognizePDF = new function() {
 					if(detected.length) {
 						deferred.resolve(_promiseTranslate(translate, libraryID));
 					} else {
-						deferred.resolve(Q.try(function() {
+						deferred.resolve(Zotero.Promise.try(function() {
 							return queryGoogle(goodLines, libraryID, tries-1);
 						}));
 					}
@@ -703,14 +734,14 @@ var Zotero_RecognizePDF = new function() {
 				translate.getTranslators();
 				
 				return deferred.promise;
-			})
-			.catch(function(e) {
+			}
+			catch (e) {
 				if(e.name == "recognizePDF.limit") {
 					queryLimitReached = true;
 				}
 				throw e;
-			});
-		}
+			}
+		});
 		
 		/**
 		 * Check for CAPTCHA on a page with HTTP 200 status
@@ -742,7 +773,7 @@ var Zotero_RecognizePDF = new function() {
 		 *                  in order to get CAPTCHA to show up
 		 * @return {Promise} A promise resolved when PDF metadata has been retrieved
 		 */
-		function _checkCaptchaError(e, tries, dontClearCookies) {
+		var _checkCaptchaError = Zotero.Promise.coroutine(function* (e, tries, dontClearCookies) {
 			if(stopCheckCallback && stopCheckCallback()) {
 				throw new Zotero.Exception.Alert('recognizePDF.stopped');
 			}
@@ -765,13 +796,17 @@ var Zotero_RecognizePDF = new function() {
 					}
 					// Redo GET request
 					Zotero.debug("RecognizePDF: Reloading page after clearing cookies.");
-					return Zotero.HTTP.promise("GET", e.xmlhttp.channel.originalURI.spec, {"responseType":"document"})
-						.then(function(xmlhttp) {
+					return Zotero.HTTP.request(
+						"GET", e.xmlhttp.channel.originalURI.spec, { "responseType": "document" }
+					)
+					.then(
+						function (xmlhttp) {
 							return _checkCaptchaOK(xmlhttp, tries);
 						},
-						function(e) {
+						function (e) {
 							return _checkCaptchaError(e, tries, true); // Don't try this again
-						});
+						}
+					);
 				}
 				
 				Zotero.debug("RecognizePDF: Google Scholar returned an unexpected page"
@@ -779,7 +814,7 @@ var Zotero_RecognizePDF = new function() {
 				throw new Zotero.Exception.Alert('recognizePDF.limit');
 			}
 			throw e;
-		}
+		});
 		
 		/**
 		 * Prompt user to enter CPATCHA
@@ -862,7 +897,7 @@ var Zotero_RecognizePDF = new function() {
 				formData.input[inputs[i].name] = inputs[i].value;
 			}
 			
-			formData.continue = "http://scholar.google.com";
+			formData.continue = "https://scholar.google.com";
 			
 			return formData;
 		}

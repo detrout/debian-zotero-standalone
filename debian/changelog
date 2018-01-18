@@ -4,6 +4,7 @@ zotero-standalone-build (5.0.33+dfsg-1) unstable; urgency=medium
     - Update zotero commit IDs in d/rules
   * Firefox no longer supports the extension. Removing xul-ext-zotero
   * Refresh patches.
+    - Remove messagebox.patch, appears to have been resolved upstream
 
  -- Diane Trout <diane@ghic.org>  Thu, 18 Jan 2018 09:36:41 -0800
 

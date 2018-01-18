@@ -13,6 +13,7 @@ export JAVA_HOME=/usr/lib/jvm/default-java
 
 override_dh_auto_build:
 	# Build the standalone package
+	cd ./zotero ; npm run build
 	./zotero-standalone-build/build.sh -p l -s -f $$(pwd)/zotero-build/xpi/build/zotero-build.xpi
 
 override_jh_build:

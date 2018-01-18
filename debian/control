@@ -7,7 +7,8 @@ Build-Depends: debhelper (>= 10), zip, unzip, mozilla-devscripts (>= 0.22),
                javahelper, default-jdk, rsync,
                ure, libreoffice-java-common, libjna-java,
                libjackson2-core-java, libjackson2-annotations-java,
-               libjackson2-databind-java
+               libjackson2-databind-java,
+               npm,
 Standards-Version: 3.9.8
 Homepage: http://www.zotero.org/
 Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/zotero-standalone-build.git

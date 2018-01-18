@@ -5,6 +5,7 @@ zotero-standalone-build (5.0.33+dfsg-1) unstable; urgency=medium
   * Firefox no longer supports the extension. Removing xul-ext-zotero
   * Refresh patches.
     - Remove messagebox.patch, appears to have been resolved upstream
+  * zotero client now needs npm to build.
 
  -- Diane Trout <diane@ghic.org>  Thu, 18 Jan 2018 09:36:41 -0800
 

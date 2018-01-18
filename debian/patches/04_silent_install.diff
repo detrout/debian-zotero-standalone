@@ -3,11 +3,9 @@ Subject: do not ask installation from GUI
 Origin: vendor, Debian
 Last-Updated: 2013-04-23
 
-Index: zotero-standalone-build/modules/zotero-libreoffice-integration/resource/installer.jsm
-===================================================================
---- a/zotero-standalone-build/modules/zotero-libreoffice-integration/resource/installer.jsm	2013-07-27 12:38:50.000000000 +0200
-+++ b/zotero-standalone-build/modules/zotero-libreoffice-integration/resource/installer.jsm	2013-07-27 12:38:50.000000000 +0200
-@@ -213,13 +213,19 @@
+--- a/zotero-standalone-build/modules/zotero-libreoffice-integration/resource/installer.jsm
++++ b/zotero-standalone-build/modules/zotero-libreoffice-integration/resource/installer.jsm
+@@ -220,13 +220,19 @@
  				if(success) {
  					zpi.success();
  				} else {

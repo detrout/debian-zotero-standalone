@@ -5,13 +5,13 @@ Last-Updated: 2013-05-10
 
 --- a/zotero/chrome/content/zotero/zoteroPane.js
 +++ b/zotero/chrome/content/zotero/zoteroPane.js
-@@ -235,7 +235,9 @@ var ZoteroPane = new function()
+@@ -235,7 +235,9 @@
+ 		else if (Zotero.Prefs.get('firstRun2')) {
  			if (Zotero.Schema.dbInitialized || !Zotero.Sync.Server.enabled) {
  				setTimeout(function () {
- 					if(Zotero.isStandalone) {
 +/*
- 						ZoteroPane_Local.loadURI("https://www.zotero.org/start_standalone");
+ 					ZoteroPane_Local.loadURI(ZOTERO_CONFIG.START_URL);
 +*/
- 					} else {
- 						gBrowser.selectedTab = gBrowser.addTab("https://www.zotero.org/start");
- 					}
+ 				}, 400);
+ 			}
+ 			Zotero.Prefs.set('firstRun2', false);

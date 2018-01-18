@@ -7,7 +7,7 @@ Forwarded: not-needed
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/zotero-standalone-build/build.sh
 +++ b/zotero-standalone-build/build.sh
-@@ -418,29 +418,12 @@ fi
+@@ -448,29 +448,12 @@
  
  # Linux
  if [ $BUILD_LINUX == 1 ]; then
@@ -23,7 +23,7 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  		mkdir "$APPDIR"
  		
 -		# Merge relevant assets from Firefox
--		cp -r "$RUNTIME_PATH/"!(application.ini|browser|defaults|crashreporter|crashreporter.ini|firefox-bin|precomplete|removed-files|run-mozilla.sh|update-settings.ini|updater|updater.ini) "$APPDIR"
+-		cp -r "$RUNTIME_PATH/"!(application.ini|browser|defaults|devtools-files|crashreporter|crashreporter.ini|firefox-bin|pingsender|precomplete|removed-files|run-mozilla.sh|update-settings.ini|updater|updater.ini) "$APPDIR"
 -		
 -		# Use our own launcher that calls the original Firefox executable with -app
 -		mv "$APPDIR"/firefox "$APPDIR"/zotero-bin
@@ -39,9 +39,9 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  		cp -R "$BUILD_DIR/zotero/"* "$BUILD_DIR/application.ini" "$APPDIR"
  		
  		# Modify platform-specific prefs
-@@ -450,20 +433,9 @@ if [ $BUILD_LINUX == 1 ]; then
- 		cd "$CALLDIR/assets/unix"
- 		zip -0 -r -q "$APPDIR/zotero.jar" *
+@@ -487,20 +470,9 @@
+ 			cp "$RUNTIME_PATH/devtools-files/components/interfaces.xpt" "$APPDIR/components/"
+ 		fi
  		
 -		# Add word processor plug-ins
 -		mkdir "$APPDIR/extensions"
@@ -58,9 +58,9 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  		find "$APPDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
 -		find "$APPDIR/extensions" -depth -type d -name build -exec rm -rf {} \;
  		
- 		# Add run-zotero.sh
- 		#cp "$CALLDIR/linux/run-zotero.sh" "$APPDIR/run-zotero.sh"
-@@ -474,7 +446,6 @@ if [ $BUILD_LINUX == 1 ]; then
+ 		if [ $PACKAGE == 1 ]; then
+ 			# Create tar
+@@ -508,7 +480,6 @@
  			cd "$STAGE_DIR"
  			tar -cjf "$DIST_DIR/Zotero-${VERSION}_linux-$arch.tar.bz2" "Zotero_linux-$arch"
  		fi
@@ -70,7 +70,7 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  rm -rf $BUILD_DIR
 --- a/zotero-build/xpi/build_xpi_4.0
 +++ b/zotero-build/xpi/build_xpi_4.0
-@@ -78,7 +78,6 @@ if [ -z "$VERSION" ]; then
+@@ -74,7 +74,6 @@
  	echo "Version number not found in install.rdf"
  	exit 1
  fi

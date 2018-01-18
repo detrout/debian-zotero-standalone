@@ -5,7 +5,7 @@ Last-Updated: 2013-05-10
 
 --- a/zotero-standalone-build/assets/prefs.js
 +++ b/zotero-standalone-build/assets/prefs.js
-@@ -87,7 +87,7 @@ pref("extensions.ui.lastCategory", "addo
+@@ -88,7 +88,7 @@
  
  /** The below is imported from https://developer.mozilla.org/en/XULRunner/Application_Update **/
  // Whether or not app updates are enabled
@@ -16,10 +16,10 @@ Last-Updated: 2013-05-10
  // install to take place. We use a separate boolean toggle for this to make
 --- a/zotero/chrome/content/zotero/standalone/standalone.xul
 +++ b/zotero/chrome/content/zotero/standalone/standalone.xul
-@@ -196,10 +196,12 @@
- 									  accesskey="&helpReportErrors.accesskey;"
- 									  label="&helpReportErrors.label;"
- 									  command="cmd_zotero_reportErrors"/>
+@@ -252,10 +252,12 @@
+ 								</menupopup>
+ 							</menu>
+ 							<menuseparator/>
 +							<!--
  							<menuitem id="checkForUpdates"
  									  accesskey="&helpCheckForUpdates.accesskey;"

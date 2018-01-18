@@ -43,6 +43,8 @@ Zotero.Translate.DOMWrapper = new function() {
 	/*
 	 * BEGIN SPECIAL POWERS WRAPPING CODE
 	 * https://dxr.mozilla.org/mozilla-central/source/testing/specialpowers/content/specialpowersAPI.js
+	 *
+	 * Includes modifications by Zotero to support overrides
 	 */
 	function isWrappable(x) {
 		if (typeof x === "object")
@@ -51,7 +53,7 @@ Zotero.Translate.DOMWrapper = new function() {
 	};
 	
 	function isWrapper(x) {
-		return isWrappable(x) && (typeof x.__wrappedObject !== "undefined");
+		return isWrappable(x) && (typeof x.SpecialPowers_wrappedObject !== "undefined");
 	};
 	
 	function unwrapIfWrapped(x) {
@@ -151,7 +153,7 @@ Zotero.Translate.DOMWrapper = new function() {
 		if (!isWrapper(x))
 			throw "Trying to unwrap a non-wrapped object!";
 	
-		var obj = x.__wrappedObject;
+		var obj = x.SpecialPowers_wrappedObject;
 		// unwrapped.
 		return obj;
 	};
@@ -177,7 +179,7 @@ Zotero.Translate.DOMWrapper = new function() {
 	
 	function SpecialPowersHandler(wrappedObject, overrides) {
 		this.wrappedObject = wrappedObject;
-		this.overrides = overrides ? overrides: {};
+		this.overrides = overrides ? overrides : {};
 	}
 	
 	SpecialPowersHandler.prototype = {
@@ -209,7 +211,7 @@ Zotero.Translate.DOMWrapper = new function() {
 		},
 	
 		has(target, prop) {
-			if (prop === "__wrappedObject")
+			if (prop === "SpecialPowers_wrappedObject")
 				return true;
 	
 			if (this.overrides[prop] !== undefined) {
@@ -220,10 +222,10 @@ Zotero.Translate.DOMWrapper = new function() {
 		},
 	
 		get(target, prop, receiver) {
-			if (prop === "__wrappedObject")
+			if (prop === "SpecialPowers_wrappedObject")
 				return this.wrappedObject;
 			
-			if (prop == "__wrapperOverrides") {
+			if (prop == "SpecialPowers_wrapperOverrides") {
 				return this.overrides;
 			}
 			
@@ -236,7 +238,7 @@ Zotero.Translate.DOMWrapper = new function() {
 		},
 	
 		set(target, prop, val, receiver) {
-			if (prop === "__wrappedObject")
+			if (prop === "SpecialPowers_wrappedObject")
 				return false;
 	
 			let obj = waiveXraysIfAppropriate(this.wrappedObject, prop);
@@ -244,7 +246,7 @@ Zotero.Translate.DOMWrapper = new function() {
 		},
 	
 		delete(target, prop) {
-			if (prop === "__wrappedObject")
+			if (prop === "SpecialPowers_wrappedObject")
 				return false;
 	
 			return Reflect.deleteProperty(this.wrappedObject, prop);
@@ -256,22 +258,21 @@ Zotero.Translate.DOMWrapper = new function() {
 	
 		getOwnPropertyDescriptor(target, prop) {
 			// Handle our special API.
-			if (prop === "__wrappedObject") {
+			if (prop === "SpecialPowers_wrappedObject") {
 				return { value: this.wrappedObject, writeable: true,
 								 configurable: true, enumerable: false };
 			}
-			if (prop == "__wrapperOverrides") {
+			
+			if (prop == "SpecialPowers_wrapperOverrides") {
 				return { value: this.overrides, writeable: false, configurable: false, enumerable: false };
 			}
-			// Handle __exposedProps__.
 			if (prop == "__exposedProps__") {
 				return { value: ExposedPropsWaiver, writable: false, configurable: false, enumerable: false };
 			}
-	
 			if (prop in this.overrides) {
-				return this.overrides[prop];
+				return { value: this.overrides[prop], writeable: false, configurable: true, enumerable: true };
 			}
-			
+	
 			let obj = waiveXraysIfAppropriate(this.wrappedObject, prop);
 			let desc = Reflect.getOwnPropertyDescriptor(obj, prop);
 	
@@ -298,7 +299,7 @@ Zotero.Translate.DOMWrapper = new function() {
 		ownKeys(target) {
 			// Insert our special API. It's not enumerable, but ownKeys()
 			// includes non-enumerable properties.
-			let props = ['__wrappedObject'];
+			let props = ['SpecialPowers_wrappedObject'];
 	
 			// Do the normal thing.
 			let flt = (a) => !props.includes(a);
@@ -407,56 +408,56 @@ Zotero.Translate.SandboxManager = function(sandboxLocation) {
 	var expr = "(function(x) { return function() { this.args = arguments; return Function.prototype.apply.call(x, this); }.bind({}); })";
 	this._makeContentForwarder = Components.utils.evalInSandbox(expr, sandbox);
 
-	if (Zotero.platformMajorVersion >= 35) {
-		var _proxy = Components.utils.evalInSandbox('(function (target, x, overrides) {'+
-		'	return new Proxy(x, ProxyHandler(target, overrides));'+
-		'})', sandbox);
-		var wrap = this.wrap = function(target, x, overrides) {
-			if (target === null || (typeof target !== "object" && typeof target !== "function")) return target;
-			if (!x) x = new sandbox.Object();
-			return _proxy(target, x, overrides);
+	var _proxy = Components.utils.evalInSandbox('(function (target, x, overrides) {'+
+	'	return new Proxy(x, ProxyHandler(target, overrides));'+
+	'})', sandbox);
+	var wrap = this.wrap = function(target, x, overrides) {
+		if (target === null || (typeof target !== "object" && typeof target !== "function")) return target;
+		if (!x) x = new sandbox.Object();
+		return _proxy(target, x, overrides);
+	};
+	var me = this;
+	sandbox.ProxyHandler = this._makeContentForwarder(function() {
+		var target = (this.args.wrappedJSObject || this.args)[0];
+		var overrides = (this.args.wrappedJSObject || this.args)[1] || {};
+		if(target instanceof Components.interfaces.nsISupports) {
+			target = new XPCNativeWrapper(target);
+		}
+		var ret = new sandbox.Object();
+		var wrappedRet = ret.wrappedJSObject || ret;
+		wrappedRet.has = function(x, prop) {
+			return overrides.hasOwnProperty(prop) || prop in target;
 		};
-		var me = this;
-		sandbox.ProxyHandler = this._makeContentForwarder(function() {
-			var target = (this.args.wrappedJSObject || this.args)[0];
-			var overrides = (this.args.wrappedJSObject || this.args)[1] || {};
-			if(target instanceof Components.interfaces.nsISupports) {
-				target = new XPCNativeWrapper(target);
-			}
-			var ret = new sandbox.Object();
-			var wrappedRet = ret.wrappedJSObject || ret;
-			wrappedRet.has = function(x, prop) {
-				return overrides.hasOwnProperty(prop) || prop in target;
-			};
-			wrappedRet.get = function(x, prop, receiver) {
-				if (prop === "__wrappedObject") return target;
-				if (prop === "__wrapperOverrides") return overrides;
-				if (prop === "__wrappingManager") return me;
-				var y = overrides.hasOwnProperty(prop) ? overrides[prop] : target[prop];
-				if (y === null || (typeof y !== "object" && typeof y !== "function")) return y;
-				return wrap(y, typeof y === "function" ? function() {
-					var args = Array.prototype.slice.apply(arguments);
-					for (var i = 0; i < args.length; i++) {
-						if (typeof args[i] === "object" && args[i] !== null &&
-							args[i].wrappedJSObject && args[i].wrappedJSObject.__wrappedObject)
-							args[i] = new XPCNativeWrapper(args[i].wrappedJSObject.__wrappedObject);
-					}
-					return wrap(y.apply(target, args));
-				} : new sandbox.Object());
-			};
-			wrappedRet.ownKeys = function(x) {
-				return Components.utils.cloneInto(target.getOwnPropertyNames(), sandbox);
-			};
-			wrappedRet.enumerate = function(x) {
-				var y = new sandbox.Array();
-				for (var i in target) y.wrappedJSObject.push(i);
-				return y;
-			};
-			return ret;
-		});
-	} else {
-		this.wrap = Zotero.Translate.DOMWrapper.wrap;
-	}
+		wrappedRet.get = function(x, prop, receiver) {
+			if (prop === "SpecialPowers_wrappedObject") return target;
+			if (prop === "SpecialPowers_wrapperOverrides") return overrides;
+			if (prop === "__wrappingManager") return me;
+			var y = overrides.hasOwnProperty(prop) ? overrides[prop] : target[prop];
+			if (y === null || (typeof y !== "object" && typeof y !== "function")) return y;
+			return wrap(y, typeof y === "function" ? function() {
+				var args = Array.prototype.slice.apply(arguments);
+				for (var i = 0; i < args.length; i++) {
+					if (typeof args[i] === "object" && args[i] !== null &&
+						args[i].wrappedJSObject && args[i].wrappedJSObject.SpecialPowers_wrappedObject)
+						args[i] = new XPCNativeWrapper(args[i].wrappedJSObject.SpecialPowers_wrappedObject);
+				}
+				return wrap(y.apply(target, args));
+			} : new sandbox.Object());
+		};
+		wrappedRet.ownKeys = function(x) {
+			return Components.utils.cloneInto(
+				Object.getOwnPropertyNames(target)
+					.concat(Object.getOwnPropertySymbols(target)),
+				sandbox
+			);
+		};
+		wrappedRet.enumerate = function(x) {
+			var y = new sandbox.Array();
+			for (var i in target) y.wrappedJSObject.push(i);
+			return y;
+		};
+		return ret;
+	});
 }
 
 Zotero.Translate.SandboxManager.prototype = {
@@ -490,25 +491,17 @@ Zotero.Translate.SandboxManager.prototype = {
 			var isObject = typeof object[localKey] === "object";
 			if(isFunction || isObject) {
 				if(isFunction) {
-					if (Zotero.platformMajorVersion >= 33) {
-						attachTo[localKey] = this._makeContentForwarder(function() {
-							var args = Array.prototype.slice.apply(this.args.wrappedJSObject || this.args);
-							for(var i = 0; i<args.length; i++) {
-								// Make sure we keep XPCNativeWrappers
-								if(args[i] instanceof Components.interfaces.nsISupports) {
-									args[i] = new XPCNativeWrapper(args[i]);
-								}
+					attachTo[localKey] = this._makeContentForwarder(function() {
+						var args = Array.prototype.slice.apply(this.args.wrappedJSObject || this.args);
+						for(var i = 0; i<args.length; i++) {
+							// Make sure we keep XPCNativeWrappers
+							if(args[i] instanceof Components.interfaces.nsISupports) {
+								args[i] = new XPCNativeWrapper(args[i]);
 							}
-							if(passAsFirstArgument) args.unshift(passAsFirstArgument);
-							return me.copyObject(object[localKey].apply(object, args));
-						});
-					} else {
-						attachTo[localKey] = function() {
-							var args = Array.prototype.slice.apply(arguments);
-							if(passAsFirstArgument) args.unshift(passAsFirstArgument);
-							return me.copyObject(object[localKey].apply(object, args));
-						};
-					}
+						}
+						if(passAsFirstArgument) args.unshift(passAsFirstArgument);
+						return me.copyObject(object[localKey].apply(object, args));
+					});
 				} else {
 					attachTo[localKey] = new sandbox.Object();
 				}
@@ -531,8 +524,11 @@ Zotero.Translate.SandboxManager.prototype = {
 
 	"_canCopy":function(obj) {
 		if(typeof obj !== "object" || obj === null) return false;
-		if((obj.constructor.name !== "Object" && obj.constructor.name !== "Array") ||
-		   "__exposedProps__" in obj || (obj.wrappedJSObject && obj.wrappedJSObject.__wrappingManager)) {
+		
+		if ((obj.wrappedJSObject && obj.wrappedJSObject.__wrappingManager)
+				|| Zotero.Translate.DOMWrapper.isWrapped(obj)
+				|| "__exposedProps__" in obj
+				|| !["Object", "Array", "Error"].includes(obj.constructor.name)) {
 			return false;
 		}
 		return true;
@@ -546,7 +542,16 @@ Zotero.Translate.SandboxManager.prototype = {
 	"copyObject":function(obj, wm) {
 		if(!this._canCopy(obj)) return obj;
 		if(!wm) wm = new WeakMap();
-		var obj2 = (obj.constructor.name === "Array" ? this.sandbox.Array() : this.sandbox.Object());
+		switch (obj.constructor.name) {
+		case 'Array':
+		case 'Error':
+			var obj2 = this.sandbox[obj.constructor.name]();
+			break;
+		
+		default:
+			var obj2 = this.sandbox.Object();
+			break;
+		}
 		var wobj2 = obj2.wrappedJSObject ? obj2.wrappedJSObject : obj2;
 		for(var i in obj) {
 			if(!obj.hasOwnProperty(i)) continue;
@@ -798,7 +803,7 @@ Zotero.Translate.IO.Read.prototype = {
 		if(this._rawStream) this._rawStream.close();
 		this._rawStream = Components.classes["@mozilla.org/network/file-input-stream;1"]
 								  .createInstance(Components.interfaces.nsIFileInputStream);
-		this._rawStream.init(this.file, 0x01, 0664, 0);
+		this._rawStream.init(this.file, 0x01, 0o664, 0);
 	},
 	
 	"_rewind":function() {
@@ -850,7 +855,7 @@ Zotero.Translate.IO.Read.prototype = {
 			this.RDF = new Zotero.Translate.IO._RDFSandbox(this._dataStore);
 		} catch(e) {
 			this.close();
-			throw "Translate: No RDF found";
+			throw new Error("Translate: No RDF found");
 		}
 	},
 	
@@ -898,7 +903,7 @@ Zotero.Translate.IO.Read.prototype = {
 		return (Zotero.isFx ? this._sandboxManager.wrap(xml) : xml);
 	},
 	
-	"init":function(newMode, callback) {
+	init: function (newMode) {
 		if(Zotero.Translate.IO.maintainedInstances.indexOf(this) === -1) {
 			Zotero.Translate.IO.maintainedInstances.push(this);
 		}
@@ -906,12 +911,10 @@ Zotero.Translate.IO.Read.prototype = {
 		
 		this._mode = newMode;
 		if(newMode === "xml/e4x") {
-			throw "E4X is not supported";
+			throw new Error("E4X is not supported");
 		} else if(Zotero.Translate.IO.rdfDataModes.indexOf(this._mode) !== -1 && !this.RDF) {
 			this._initRDF();
 		}
-		
-		callback(true);
 	},
 	
 	"close":function() {
@@ -935,7 +938,7 @@ Zotero.Translate.IO.Write = function(file) {
 	Zotero.Translate.IO.maintainedInstances.push(this);
 	this._rawStream = Components.classes["@mozilla.org/network/file-output-stream;1"]
 		.createInstance(Components.interfaces.nsIFileOutputStream);
-	this._rawStream.init(file, 0x02 | 0x08 | 0x20, 0664, 0); // write, create, truncate
+	this._rawStream.init(file, 0x02 | 0x08 | 0x20, 0o664, 0); // write, create, truncate
 	this._writtenToStream = false;
 }
 
@@ -993,7 +996,7 @@ Zotero.Translate.IO.Write.prototype = {
 		this._writtenToStream = true;
 	},
 	
-	"init":function(newMode, charset, callback) {
+	init: function (newMode, charset) {
 		this._mode = newMode;
 		if(Zotero.Translate.IO.rdfDataModes.indexOf(this._mode) !== -1) {
 			this._initRDF();

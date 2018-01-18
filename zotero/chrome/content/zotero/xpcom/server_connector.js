@@ -24,8 +24,53 @@
 */
 const CONNECTOR_API_VERSION = 2;
 
-Zotero.Server.Connector = function() {};
-Zotero.Server.Connector._waitingForSelection = {};
+Zotero.Server.Connector = {
+	_waitingForSelection: {},
+	
+	getSaveTarget: function () {
+		var zp = Zotero.getActiveZoteroPane(),
+			library = null,
+			collection = null,
+			editable = true;
+		try {
+			library = Zotero.Libraries.get(zp.getSelectedLibraryID());
+			collection = zp.getSelectedCollection();
+			editable = zp.collectionsView.editable;
+		}
+		catch (e) {
+			let id = Zotero.Prefs.get('lastViewedFolder');
+			if (id) {
+				let type = id[0];
+				Zotero.debug(type);
+				id = parseInt(('' + id).substr(1));
+				
+				switch (type) {
+					case 'L':
+						library = Zotero.Libraries.get(id);
+						editable = library.editable;
+						break;
+					
+					case 'C':
+						collection = Zotero.Collections.get(id);
+						library = collection.library;
+						editable = collection.editable;
+						break;
+					}
+			}
+		}
+		
+		// Default to My Library if present if pane not yet opened
+		// (which should never be the case anymore)
+		if (!library) {
+			let userLibrary = Zotero.Libraries.userLibrary;
+			if (userLibrary) {
+				library = userLibrary;
+			}
+		}
+		
+		return { library, collection, editable };
+	}
+};
 Zotero.Server.Connector.Data = {};
 Zotero.Server.Connector.AttachmentProgressManager = new function() {
 	var attachmentsInProgress = new WeakMap(),
@@ -76,38 +121,40 @@ Zotero.Server.Connector.AttachmentProgressManager = new function() {
 Zotero.Server.Connector.GetTranslators = function() {};
 Zotero.Server.Endpoints["/connector/getTranslators"] = Zotero.Server.Connector.GetTranslators;
 Zotero.Server.Connector.GetTranslators.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Gets available translator list and other important data
 	 * @param {Object} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(data, sendResponseCallback) {
+	init: function(data, sendResponseCallback) {
 		// Translator data
+		var me = this;
 		if(data.url) {
-			var me = this;
-			Zotero.Translators.getWebTranslatorsForLocation(data.url, function(data) {				
+			Zotero.Translators.getWebTranslatorsForLocation(data.url, data.rootUrl).then(function(data) {				
 				sendResponseCallback(200, "application/json",
 						JSON.stringify(me._serializeTranslators(data[0])));
 			});
 		} else {
-			var responseData = this._serializeTranslators(Zotero.Translators.getAll());
-			sendResponseCallback(200, "application/json", JSON.stringify(responseData));
+			Zotero.Translators.getAll().then(function(translators) {
+				var responseData = me._serializeTranslators(translators);
+				sendResponseCallback(200, "application/json", JSON.stringify(responseData));
+			}).catch(function(e) {
+				sendResponseCallback(500);
+				throw e;
+			}).done();
 		}
 	},
 	
-	"_serializeTranslators":function(translators) {
+	_serializeTranslators: function(translators) {
 		var responseData = [];
-		for each(var translator in translators) {
-			let serializableTranslator = {};
-			for each(var key in ["translatorID", "translatorType", "label", "creator", "target",
-					"minVersion", "maxVersion", "priority", "browserSupport", "inRepository", "lastUpdated"]) {
-				serializableTranslator[key] = translator[key];
-			}
-			responseData.push(serializableTranslator);
+		let properties = ["translatorID", "translatorType", "label", "creator", "target", "targetAll",
+			"minVersion", "maxVersion", "priority", "browserSupport", "inRepository", "lastUpdated"];
+		for (var translator of translators) {
+			responseData.push(translator.serialize(properties));
 		}
 		return responseData;
 	}
@@ -127,16 +174,16 @@ Zotero.Server.Connector.Detect = function() {};
 Zotero.Server.Endpoints["/connector/detect"] = Zotero.Server.Connector.Detect;
 Zotero.Server.Connector.Data = {};
 Zotero.Server.Connector.Detect.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Loads HTML into a hidden browser and initiates translator detection
 	 * @param {Object} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(url, data, sendResponseCallback) {
+	init: function(url, data, sendResponseCallback) {
 		this.sendResponse = sendResponseCallback;
 		this._parsedPostData = data;
 		
@@ -163,6 +210,7 @@ Zotero.Server.Connector.Detect.prototype = {
 				
 				// get translators
 				me._translate.setDocument(me._browser.contentDocument);
+				me._translate.setLocation(me._parsedPostData["uri"], me._parsedPostData["uri"]);
 				me._translate.getTranslators();
 			} catch(e) {
 				sendResponseCallback(500);
@@ -174,25 +222,18 @@ Zotero.Server.Connector.Detect.prototype = {
 	},
 
 	/**
-	 * Callback to be executed when list of translators becomes available. Sends response with
-	 * item types, translator IDs, labels, and icons for available translators.
+	 * Callback to be executed when list of translators becomes available. Sends standard
+	 * translator passing properties with proxies where available for translators.
 	 * @param {Zotero.Translate} translate
 	 * @param {Zotero.Translator[]} translators
 	 */
-	"_translatorsAvailable":function(obj, translators) {
-		var jsons = [];
-		for each(var translator in translators) {
-			if(translator.itemType == "multiple") {
-				var icon = "treesource-collection.png"
-			} else {
-				var icon = Zotero.ItemTypes.getImageSrc(translator.itemType);
-				icon = icon.substr(icon.lastIndexOf("/")+1);
-			}
-			var json = {"itemType":translator.itemType, "translatorID":translator.translatorID,
-				"label":translator.label, "priority":translator.priority}
-			jsons.push(json);
-		}
-		this.sendResponse(200, "application/json", JSON.stringify(jsons));
+	_translatorsAvailable: function(translate, translators) {
+		translators = translators.map(function(translator) {
+			translator = translator.serialize(TRANSLATOR_PASSING_PROPERTIES.concat('proxy'));
+			translator.proxy = translator.proxy ? translator.proxy.toJSON() : null;
+			return translator;
+		});
+		this.sendResponse(200, "application/json", JSON.stringify(translators));
 		
 		Zotero.Browser.deleteHiddenBrowser(this._browser);
 	}
@@ -205,6 +246,7 @@ Zotero.Server.Connector.Detect.prototype = {
  *		uri - The URI of the page to be saved
  *		html - document.innerHTML or equivalent
  *		cookie - document.cookie or equivalent
+ *		translatorID [optional] - a translator ID as returned by /connector/detect
  *
  * Returns:
  *		If a single item, sends response code 201 with item in body.
@@ -216,9 +258,9 @@ Zotero.Server.Connector.Detect.prototype = {
 Zotero.Server.Connector.SavePage = function() {};
 Zotero.Server.Endpoints["/connector/savePage"] = Zotero.Server.Connector.SavePage;
 Zotero.Server.Connector.SavePage.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Either loads HTML into a hidden browser and initiates translation, or saves items directly
@@ -226,7 +268,13 @@ Zotero.Server.Connector.SavePage.prototype = {
 	 * @param {Object} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(url, data, sendResponseCallback) {
+	init: function(url, data, sendResponseCallback) {
+		var { library, collection, editable } = Zotero.Server.Connector.getSaveTarget();
+		if (!library.editable) {
+			Zotero.logError("Can't add item to read-only library " + library.name);
+			return sendResponseCallback(500, "application/json", JSON.stringify({ libraryEditable: false }));
+		}
+		
 		this.sendResponse = sendResponseCallback;
 		Zotero.Server.Connector.Detect.prototype.init.apply(this, [url, data, sendResponseCallback])
 	},
@@ -236,7 +284,7 @@ Zotero.Server.Connector.SavePage.prototype = {
 	 * @param {Zotero.Translate} translate
 	 * @param {Object} itemList ID=>text pairs representing available items
 	 */
-	"_selectItems":function(translate, itemList, callback) {
+	_selectItems: function(translate, itemList, callback) {
 		var instanceID = Zotero.randomString();
 		Zotero.Server.Connector._waitingForSelection[instanceID] = this;
 		
@@ -250,7 +298,7 @@ Zotero.Server.Connector.SavePage.prototype = {
 		}
 		
 		// Send "Multiple Choices" HTTP response
-		this.sendResponse(300, "application/json", JSON.stringify({"selectItems":itemList, "instanceID":instanceID, "uri":this._parsedPostData.uri}));
+		this.sendResponse(300, "application/json", JSON.stringify({selectItems: itemList, instanceID: instanceID, uri: this._parsedPostData.uri}));
 		this.selectedItemsCallback = callback;
 	},
 
@@ -260,7 +308,7 @@ Zotero.Server.Connector.SavePage.prototype = {
 	 * @param {Zotero.Translate} translate
 	 * @param {Zotero.Translator[]} translators
 	 */
-	"_translatorsAvailable":function(translate, translators) {
+	_translatorsAvailable: function(translate, translators) {
 		// make sure translatorsAvailable succeded
 		if(!translators.length) {
 			Zotero.Browser.deleteHiddenBrowser(this._browser);
@@ -268,42 +316,35 @@ Zotero.Server.Connector.SavePage.prototype = {
 			return;
 		}
 		
-		// figure out where to save
-		var libraryID = null;
-		var collectionID = null;
-		var zp = Zotero.getActiveZoteroPane();
-		try {
-			var libraryID = zp.getSelectedLibraryID();
-			var collection = zp.getSelectedCollection();
-		} catch(e) {}
+		var { library, collection, editable } = Zotero.Server.Connector.getSaveTarget();
+		var libraryID = library.libraryID;
 		
 		// set handlers for translation
 		var me = this;
 		var jsonItems = [];
 		translate.setHandler("select", function(obj, item, callback) { return me._selectItems(obj, item, callback) });
 		translate.setHandler("itemDone", function(obj, item, jsonItem) {
-			if(collection) {
-				collection.addItem(item.id);
-			}
 			Zotero.Server.Connector.AttachmentProgressManager.add(jsonItem.attachments);
-			
 			jsonItems.push(jsonItem);
 		});
 		translate.setHandler("attachmentProgress", function(obj, attachment, progress, error) {
 			Zotero.Server.Connector.AttachmentProgressManager.onProgress(attachment, progress, error);
 		});
-		translate.setHandler("itemsDone", function(obj, item) {
+		translate.setHandler("done", function(obj, item) {
 			Zotero.Browser.deleteHiddenBrowser(me._browser);
 			if(jsonItems.length || me.selectedItems === false) {
-				me.sendResponse(201, "application/json", JSON.stringify({"items":jsonItems}));
+				me.sendResponse(201, "application/json", JSON.stringify({items: jsonItems}));
 			} else {
 				me.sendResponse(500);
 			}
 		});
 		
-		// set translator and translate
-		translate.setTranslator(this._parsedPostData.translatorID);
-		translate.translate(libraryID);
+		if (this._parsedPostData.translatorID) {
+			translate.setTranslator(this._parsedPostData.translatorID);
+		} else {
+			translate.setTranslator(translators[0]);
+		}
+		translate.translate({libraryID, collections: collection ? [collection.id] : false});
 	}
 }
 
@@ -318,28 +359,33 @@ Zotero.Server.Connector.SavePage.prototype = {
 Zotero.Server.Connector.SaveItem = function() {};
 Zotero.Server.Endpoints["/connector/saveItems"] = Zotero.Server.Connector.SaveItem;
 Zotero.Server.Connector.SaveItem.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Either loads HTML into a hidden browser and initiates translation, or saves items directly
 	 * to the database
-	 * @param {Object} data POST data or GET query string
-	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(url, data, sendResponseCallback) {
-		// figure out where to save
-		var libraryID = null;
-		var collectionID = null;
-		var zp = Zotero.getActiveZoteroPane();
-		try {
-			var libraryID = zp.getSelectedLibraryID();
-			var collection = zp.getSelectedCollection();
-		} catch(e) {}
+	init: Zotero.Promise.coroutine(function* (options) {
+		var data = options.data;
 		
-		var cookieSandbox = data["uri"] ? new Zotero.CookieSandbox(null, data["uri"],
-			data["detailedCookies"] ? "" : data["cookie"] || "", url.userAgent) : null;
+		var { library, collection, editable } = Zotero.Server.Connector.getSaveTarget();
+		var libraryID = library.libraryID;
+		
+		if (!library.editable) {
+			Zotero.logError("Can't add item to read-only library " + library.name);
+			return [500, "application/json", JSON.stringify({ libraryEditable: false })];
+		}
+		
+		var cookieSandbox = data.uri
+			? new Zotero.CookieSandbox(
+				null,
+				data.uri,
+				data.detailedCookies ? "" : data.cookie || "",
+				options.headers["User-Agent"]
+			)
+			: null;
 		if(cookieSandbox && data.detailedCookies) {
 			cookieSandbox.addCookiesFromHeader(data.detailedCookies);
 		}
@@ -348,12 +394,22 @@ Zotero.Server.Connector.SaveItem.prototype = {
 			Zotero.Server.Connector.AttachmentProgressManager.add(data.items[i].attachments);
 		}
 		
+		let proxy = data.proxy && new Zotero.Proxy(data.proxy);
 		// save items
-		var itemSaver = new Zotero.Translate.ItemSaver(libraryID,
-			Zotero.Translate.ItemSaver.ATTACHMENT_MODE_DOWNLOAD, 1, undefined, cookieSandbox);
-		itemSaver.saveItems(data.items, function(returnValue, items) {
-			if(returnValue) {
-				try {
+		var itemSaver = new Zotero.Translate.ItemSaver({
+			libraryID,
+			collections: collection ? [collection.id] : undefined,
+			attachmentMode: Zotero.Translate.ItemSaver.ATTACHMENT_MODE_DOWNLOAD,
+			forceTagType: 1,
+			cookieSandbox,
+			proxy
+		});
+		try {
+			var deferred = Zotero.Promise.defer();
+			itemSaver.saveItems(
+				data.items,
+				Zotero.Server.Connector.AttachmentProgressManager.onProgress,
+				function() {
 					// Remove attachments not being saved from item.attachments
 					for(var i=0; i<data.items.length; i++) {
 						var item = data.items[i];
@@ -364,21 +420,16 @@ Zotero.Server.Connector.SaveItem.prototype = {
 						}
 					}
 					
-					for(var i=0; i<items.length; i++) {
-						if(collection) collection.addItem(items[i].id);
-					}
-					
-					sendResponseCallback(201, "application/json", JSON.stringify({"items":data.items}));
-				} catch(e) {
-					Zotero.logError(e);
-					sendResponseCallback(500);
+					deferred.resolve([201, "application/json", JSON.stringify({items: data.items})]);	
 				}
-			} else {
-				Zotero.logError(items);
-				sendResponseCallback(500);
-			}
-		}, Zotero.Server.Connector.AttachmentProgressManager.onProgress);
-	}
+			);
+			return deferred.promise;
+		}
+		catch (e) {
+			Zotero.logError(e);
+			return 500;
+		}
+	})
 }
 
 /**
@@ -394,26 +445,25 @@ Zotero.Server.Connector.SaveItem.prototype = {
 Zotero.Server.Connector.SaveSnapshot = function() {};
 Zotero.Server.Endpoints["/connector/saveSnapshot"] = Zotero.Server.Connector.SaveSnapshot;
 Zotero.Server.Connector.SaveSnapshot.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Save snapshot
-	 * @param {String} data POST data or GET query string
-	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(url, data, sendResponseCallback) {
+	init: Zotero.Promise.coroutine(function* (options) {
+		var data = options.data;
+		
 		Zotero.Server.Connector.Data[data["url"]] = "<html>"+data["html"]+"</html>";
 		
-		// figure out where to save
-		var libraryID = null;
-		var collectionID = null;
-		var zp = Zotero.getActiveZoteroPane();
-		try {
-			var libraryID = zp.getSelectedLibraryID();
-			var collection = zp.getSelectedCollection();
-		} catch(e) {}
+		var { library, collection, editable } = Zotero.Server.Connector.getSaveTarget();
+		var libraryID = library.libraryID;
+		
+		if (!library.editable) {
+			Zotero.logError("Can't add item to read-only library " + library.name);
+			return [500, "application/json", JSON.stringify({ libraryEditable: false })];
+		}
 		
 		// determine whether snapshot can be saved
 		var filesEditable;
@@ -425,35 +475,42 @@ Zotero.Server.Connector.SaveSnapshot.prototype = {
 			filesEditable = true;
 		}
 		
-		var cookieSandbox = new Zotero.CookieSandbox(null, data["url"], data["cookie"], url.userAgent);
+		var cookieSandbox = data.url
+			? new Zotero.CookieSandbox(
+				null,
+				data.url,
+				data.detailedCookies ? "" : data.cookie || "",
+				options.headers["User-Agent"]
+			)
+			: null;
+		if(cookieSandbox && data.detailedCookies) {
+			cookieSandbox.addCookiesFromHeader(data.detailedCookies);
+		}
 		
 		if (data.pdf && filesEditable) {
 			delete Zotero.Server.Connector.Data[data.url];
 			
 			try {
-				Zotero.Attachments.importFromURL(
-					data.url,
-					null,
-					null,
-					null,
-					collection ? [collection.id] : null,
-					"application/pdf",
+				yield Zotero.Attachments.importFromURL({
 					libraryID,
-					function () {
-						sendResponseCallback(201);
-					},
+					url: data.url,
+					collections: collection ? [collection.id] : undefined,
+					contentType: "application/pdf",
 					cookieSandbox
-				);
+				});
+				return 201;
 			}
 			catch (e) {
-				sendResponseCallback(500);
-				throw e;
+				Zotero.logError(e);
+				return 500;
 			}
 		}
 		else {
-			Zotero.HTTP.processDocuments(["zotero://connector/"+encodeURIComponent(data["url"])],
-				function(doc) {
-					delete Zotero.Server.Connector.Data[data["url"]];
+			let deferred = Zotero.Promise.defer();
+			Zotero.HTTP.loadDocuments(
+				["zotero://connector/" + encodeURIComponent(data.url)],
+				Zotero.Promise.coroutine(function* (doc) {
+					delete Zotero.Server.Connector.Data[data.url];
 					
 					try {
 						// create new webpage item
@@ -462,23 +519,31 @@ Zotero.Server.Connector.SaveSnapshot.prototype = {
 						item.setField("title", doc.title);
 						item.setField("url", data.url);
 						item.setField("accessDate", "CURRENT_TIMESTAMP");
-						var itemID = item.save();
-						if(collection) collection.addItem(itemID);
+						if (collection) {
+							item.setCollections([collection.id]);
+						}
+						var itemID = yield item.saveTx();
 						
 						// save snapshot
 						if (filesEditable && !data.skipSnapshot) {
-							Zotero.Attachments.importFromDocument(doc, itemID);
+							yield Zotero.Attachments.importFromDocument({
+								document: doc,
+								parentItemID: itemID
+							});
 						}
 						
-						sendResponseCallback(201);
+						deferred.resolve(201);
 					} catch(e) {
-						sendResponseCallback(500);
+						Zotero.debug(e, 1);
+						deferred.resolve(500);
 						throw e;
 					}
-				},
-				null, null, false, cookieSandbox);
+				}),
+				null, null, false, cookieSandbox
+			);
+			return deferred.promise;
 		}
-	}
+	})
 }
 
 /**
@@ -493,16 +558,16 @@ Zotero.Server.Connector.SaveSnapshot.prototype = {
 Zotero.Server.Connector.SelectItems = function() {};
 Zotero.Server.Endpoints["/connector/selectItems"] = Zotero.Server.Connector.SelectItems;
 Zotero.Server.Connector.SelectItems.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Finishes up translation when item selection is complete
 	 * @param {String} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(data, sendResponseCallback) {
+	init: function(data, sendResponseCallback) {
 		var saveInstance = Zotero.Server.Connector._waitingForSelection[data.instanceID];
 		saveInstance.sendResponse = sendResponseCallback;
 		
@@ -527,18 +592,77 @@ Zotero.Server.Connector.SelectItems.prototype = {
 Zotero.Server.Connector.Progress = function() {};
 Zotero.Server.Endpoints["/connector/attachmentProgress"] = Zotero.Server.Connector.Progress;
 Zotero.Server.Connector.Progress.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * @param {String} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(data, sendResponseCallback) {
+	init: function(data, sendResponseCallback) {
 		sendResponseCallback(200, "application/json",
 			JSON.stringify(data.map(id => Zotero.Server.Connector.AttachmentProgressManager.getProgressForID(id))));
 	}
+};
+
+/**
+ * Translates resources using import translators
+ * 	
+ * Returns:
+ * 	- Object[Item] an array of imported items
+ */
+ 
+Zotero.Server.Connector.Import = function() {};
+Zotero.Server.Endpoints["/connector/import"] = Zotero.Server.Connector.Import;
+Zotero.Server.Connector.Import.prototype = {
+	supportedMethods: ["POST"],
+	supportedDataTypes: '*',
+	permitBookmarklet: false,
+	
+	init: Zotero.Promise.coroutine(function* (options) {
+		let translate = new Zotero.Translate.Import();
+		translate.setString(options.data);
+		let translators = yield translate.getTranslators();
+		if (!translators || !translators.length) {
+			return 400;
+		}
+		translate.setTranslator(translators[0]);
+		var { library, collection, editable } = Zotero.Server.Connector.getSaveTarget();
+		if (!library.editable) {
+			Zotero.logError("Can't import into read-only library " + library.name);
+			return [500, "application/json", JSON.stringify({ libraryEditable: false })];
+		}
+		let items = yield translate.translate({
+			libraryID: library.libraryID,
+			collections: collection ? [collection.id] : null
+		});
+		return [201, "application/json", JSON.stringify(items)];
+	})
+}
+
+/**
+ * Install CSL styles
+ * 	
+ * Returns:
+ * 	- {name: styleName}
+ */
+ 
+Zotero.Server.Connector.InstallStyle = function() {};
+Zotero.Server.Endpoints["/connector/installStyle"] = Zotero.Server.Connector.InstallStyle;
+Zotero.Server.Connector.InstallStyle.prototype = {
+	supportedMethods: ["POST"],
+	supportedDataTypes: '*',
+	permitBookmarklet: false,
+	
+	init: Zotero.Promise.coroutine(function* (options) {
+		try {
+			var styleName = yield Zotero.Styles.install(options.data, options.query.origin || null, true);
+		} catch (e) {
+			return [400, "text/plain", e.message];
+		}
+		return [201, "application/json", JSON.stringify({name: styleName})];
+	})
 };
 
 /**
@@ -552,18 +676,20 @@ Zotero.Server.Connector.Progress.prototype = {
 Zotero.Server.Connector.GetTranslatorCode = function() {};
 Zotero.Server.Endpoints["/connector/getTranslatorCode"] = Zotero.Server.Connector.GetTranslatorCode;
 Zotero.Server.Connector.GetTranslatorCode.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Returns a 200 response to say the server is alive
 	 * @param {String} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(postData, sendResponseCallback) {
+	init: function(postData, sendResponseCallback) {
 		var translator = Zotero.Translators.get(postData.translatorID);
-		sendResponseCallback(200, "application/javascript", translator.code);
+		translator.getCode().then(function(code) {
+			sendResponseCallback(200, "application/javascript", code);
+		});
 	}
 }
 
@@ -581,37 +707,26 @@ Zotero.Server.Connector.GetTranslatorCode.prototype = {
 Zotero.Server.Connector.GetSelectedCollection = function() {};
 Zotero.Server.Endpoints["/connector/getSelectedCollection"] = Zotero.Server.Connector.GetSelectedCollection;
 Zotero.Server.Connector.GetSelectedCollection.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Returns a 200 response to say the server is alive
 	 * @param {String} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(postData, sendResponseCallback) {
-		var zp = Zotero.getActiveZoteroPane(),
-			libraryID = null,
-			collection = null,
-			editable = true;
-		
-		try {
-			libraryID = zp.getSelectedLibraryID();
-			collection = zp.getSelectedCollection();
-			editable = zp.collectionsView.editable;
-		} catch(e) {}
-		
+	init: function(postData, sendResponseCallback) {
+		var { library, collection, editable } = Zotero.Server.Connector.getSaveTarget();
 		var response = {
-			"editable":editable,
-			"libraryID":libraryID
+			libraryID: library.libraryID,
+			libraryName: library.name,
+			libraryEditable: library.editable,
+			editable
 		};
 		
-		if(libraryID) {
-			response.libraryName = Zotero.Libraries.getName(libraryID);
-		} else {
-			response.libraryName = Zotero.getString("pane.collections.library");
-		}
+		response.libraryName = library.name;
+		response.libraryEditable = library.editable;
 		
 		if(collection && collection.id) {
 			response.id = collection.id;
@@ -625,6 +740,60 @@ Zotero.Server.Connector.GetSelectedCollection.prototype = {
 	}
 }
 
+/**
+ * Get a list of client hostnames (reverse local IP DNS)
+ *
+ * Accepts:
+ *		Nothing
+ * Returns:
+ * 		{Array} hostnames
+ */
+Zotero.Server.Connector.GetClientHostnames = {};
+Zotero.Server.Connector.GetClientHostnames = function() {};
+Zotero.Server.Endpoints["/connector/getClientHostnames"] = Zotero.Server.Connector.GetClientHostnames;
+Zotero.Server.Connector.GetClientHostnames.prototype = {
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: false,
+	
+	/**
+	 * Returns a 200 response to say the server is alive
+	 */
+	init: Zotero.Promise.coroutine(function* (options) {
+		try {
+			var hostnames = yield Zotero.Proxies.DNS.getHostnames();
+		} catch(e) {
+			return 500;
+		}
+		return [200, "application/json", JSON.stringify(hostnames)];
+	})
+};
+
+/**
+ * Get a list of stored proxies
+ *
+ * Accepts:
+ *		Nothing
+ * Returns:
+ * 		{Array} hostnames
+ */
+Zotero.Server.Connector.Proxies = {};
+Zotero.Server.Connector.Proxies = function() {};
+Zotero.Server.Endpoints["/connector/proxies"] = Zotero.Server.Connector.Proxies;
+Zotero.Server.Connector.Proxies.prototype = {
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: false,
+	
+	/**
+	 * Returns a 200 response to say the server is alive
+	 */
+	init: Zotero.Promise.coroutine(function* () {
+		let proxies = Zotero.Proxies.proxies.map((p) => Object.assign(p.toJSON(), {hosts: p.hosts}));
+		return [200, "application/json", JSON.stringify(proxies)];
+	})
+};
+
 
 /**
  * Test connection
@@ -637,17 +806,37 @@ Zotero.Server.Connector.GetSelectedCollection.prototype = {
 Zotero.Server.Connector.Ping = function() {};
 Zotero.Server.Endpoints["/connector/ping"] = Zotero.Server.Connector.Ping;
 Zotero.Server.Connector.Ping.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json", "text/plain"],
-	"permitBookmarklet":true,
+	supportedMethods: ["GET", "POST"],
+	supportedDataTypes: ["application/json", "text/plain"],
+	permitBookmarklet: true,
 	
 	/**
-	 * Sends nothing
-	 * @param {String} data POST data or GET query string
-	 * @param {Function} sendResponseCallback function to send HTTP response
+	 * Sends 200 and HTML status on GET requests
+	 * @param data {Object} request information defined in connector.js
 	 */
-	"init":function(postData, sendResponseCallback) {
-		sendResponseCallback(200);
+	init: function (req) {
+		if (req.method == 'GET') {
+			return [200, "text/html", '<!DOCTYPE html><html><head>' +
+				'<title>Zotero Connector Server is Available</title></head>' +
+				'<body>Zotero Connector Server is Available</body></html>'];
+		} else {
+			// Store the active URL so it can be used for site-specific Quick Copy
+			if (req.data.activeURL) {
+				//Zotero.debug("Setting active URL to " + req.data.activeURL);
+				Zotero.QuickCopy.lastActiveURL = req.data.activeURL;
+			}
+			
+			let response = {
+				prefs: {
+					automaticSnapshots: Zotero.Prefs.get('automaticSnapshots')
+				}
+			};
+			if (Zotero.QuickCopy.hasSiteSettings()) {
+				response.prefs.reportActiveURL = true;
+			}
+			
+			return [200, 'application/json', JSON.stringify(response)];
+		}
 	}
 }
 
@@ -662,15 +851,15 @@ Zotero.Server.Connector.Ping.prototype = {
 Zotero.Server.Connector.IEHack = function() {};
 Zotero.Server.Endpoints["/connector/ieHack"] = Zotero.Server.Connector.IEHack;
 Zotero.Server.Connector.IEHack.prototype = {
-	"supportedMethods":["GET"],
-	"permitBookmarklet":true,
+	supportedMethods: ["GET"],
+	permitBookmarklet: true,
 	
 	/**
 	 * Sends a fixed webpage
 	 * @param {String} data POST data or GET query string
 	 * @param {Function} sendResponseCallback function to send HTTP response
 	 */
-	"init":function(postData, sendResponseCallback) {
+	init: function(postData, sendResponseCallback) {
 		sendResponseCallback(200, "text/html",
 			'<!DOCTYPE html><html><head>'+
 			'<script src="'+ZOTERO_CONFIG.BOOKMARKLET_URL+'common_ie.js"></script>'+
@@ -687,11 +876,11 @@ Zotero.Server.Endpoints["/translate/detect"] = Zotero.Server.Connector.Incompati
 Zotero.Server.Endpoints["/translate/save"] = Zotero.Server.Connector.IncompatibleVersion;
 Zotero.Server.Endpoints["/translate/select"] = Zotero.Server.Connector.IncompatibleVersion;
 Zotero.Server.Connector.IncompatibleVersion.prototype = {
-	"supportedMethods":["POST"],
-	"supportedDataTypes":["application/json"],
-	"permitBookmarklet":true,
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
 	
-	"init":function(postData, sendResponseCallback) {
+	init: function(postData, sendResponseCallback) {
 		sendResponseCallback(404);
 		if(Zotero.Server.Connector.IncompatibleVersion._errorShown) return;
 		

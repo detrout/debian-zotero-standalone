@@ -626,11 +626,11 @@
 			"system": "System",
 			"title": "Title",
 			"url": "http://www.example.com",
-			"version": "Version"
+			"version": "Version number"
 		},
 		"uri": "http://zotero.org/users/local/GtG6GoZj/items/ZVFQ59AJ",
 		"url": "http://www.example.com",
-		"version": "Version"
+		"version": "Version number"
 	},
 	"conferencePaper": {
 		"DOI": "10.1234/example.doi",

@@ -105,8 +105,8 @@ Zotero.OpenURL = new function() {
 			}
 		}
 		
-		if(item.toArray) {
-			item = item.toArray();
+		if (item.toJSON) {
+			item = item.toJSON();
 		}
 		
 		// find pmid
@@ -205,7 +205,7 @@ Zotero.OpenURL = new function() {
 		
 		if(item.creators && item.creators.length) {
 			// encode first author as first and last
-			var firstCreator = item.creators[0];
+			let firstCreator = Zotero.Items.getFirstCreatorFromJSON(item);
 			if(item.itemType == "patent") {
 				_mapTag(firstCreator.firstName, "invfirst");
 				_mapTag(firstCreator.lastName, "invlast");
@@ -245,7 +245,7 @@ Zotero.OpenURL = new function() {
 	}
 
 	function _cloneIfNecessary(obj1, obj2) {
-		if(Zotero.isFx && !Zotero.isBookmarklet && Zotero.platformMajorVersion >= 32) {
+		if (Zotero.isFx && !Zotero.isBookmarklet) {
 			return Components.utils.cloneInto(obj1, obj2);
 		}
 		return obj1;

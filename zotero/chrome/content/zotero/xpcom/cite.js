@@ -143,7 +143,7 @@ Zotero.Cite = {
 				output.push(bib[1][i]);
 				
 				// add COinS
-				for each(var itemID in bib[0].entry_ids[i]) {
+				for (let itemID of bib[0].entry_ids[i]) {
 					try {
 						var co = Zotero.OpenURL.createContextObject(Zotero.Items.get(itemID), "1.0");
 						if(!co) continue;
@@ -206,7 +206,7 @@ Zotero.Cite = {
 				}
 				// If only one field, apply hanging indent on root
 				else if (!multiField) {
-					style += "padding-left: " + hangingIndent + "em; text-indent:-" + hangingIndent + "em;";
+					style += "margin-left: " + hangingIndent + "em; text-indent:-" + hangingIndent + "em;";
 				}
 			}
 			
@@ -235,7 +235,7 @@ Zotero.Cite = {
 			var rightPadding = .5;
 			
 			// div.csl-left-margin
-			for each(var div in leftMarginDivs) {
+			for (let div of leftMarginDivs) {
 				var divStyle = div.getAttribute("style");
 				if(!divStyle) divStyle = "";
 				
@@ -252,7 +252,7 @@ Zotero.Cite = {
 			}
 			
 			// div.csl-right-inline
-			for each(var div in Zotero.Utilities.xpath(doc, '//div[@class="csl-right-inline"]')) {
+			for (let div of Zotero.Utilities.xpath(doc, '//div[@class="csl-right-inline"]')) {
 				var divStyle = div.getAttribute("style");
 				if(!divStyle) divStyle = "";
 				
@@ -266,7 +266,7 @@ Zotero.Cite = {
 			}
 			
 			// div.csl-indent
-			for each(var div in Zotero.Utilities.xpath(doc, '//div[@class="csl-indent"]')) {
+			for (let div of Zotero.Utilities.xpath(doc, '//div[@class="csl-indent"]')) {
 				div.setAttribute("style", "margin: .5em 0 0 2em; padding: 0 0 .2em .5em; border-left: 5px solid #ccc;");
 			}
 			
@@ -333,7 +333,7 @@ Zotero.Cite.getAbbreviation = new function() {
 	}
 
 	function loadAbbreviations() {
-		var file = Zotero.getZoteroDirectory();
+		var file = Zotero.File.pathToFile(Zotero.DataDirectory.dir);
 		file.append("abbreviations.json");
 
 		var json, origin;
@@ -556,21 +556,41 @@ Zotero.Cite.System.prototype = {
 	 * @return {String|Boolean} The locale as a string if it exists, or false if it doesn't
 	 */
 	"retrieveLocale":function retrieveLocale(lang) {
-		var protHandler = Components.classes["@mozilla.org/network/protocol;1?name=chrome"]
-			.createInstance(Components.interfaces.nsIProtocolHandler);
+		return Zotero.Cite.Locale.get(lang);
+	}
+};
+
+Zotero.Cite.Locale = {
+	_cache: new Map(),
+	
+	get: function (locale) {
+		var str = this._cache.get(locale);
+		if (str) {
+			return str;
+		}
+		var uri = `chrome://zotero/content/locale/csl/locales-${locale}.xml`;
 		try {
-			var channel = protHandler.newChannel(protHandler.newURI("chrome://zotero/content/locale/csl/locales-"+lang+".xml", "UTF-8", null));
-			var rawStream = channel.open();
-		} catch(e) {
+			let protHandler = Components.classes["@mozilla.org/network/protocol;1?name=chrome"]
+				.createInstance(Components.interfaces.nsIProtocolHandler);
+			let channel = protHandler.newChannel(protHandler.newURI(uri));
+			let cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
+				.createInstance(Components.interfaces.nsIConverterInputStream);
+			cstream.init(channel.open(), "UTF-8", 0, 0);
+			let obj = {};
+			let read = 0;
+			let str = "";
+			do {
+				// Read as much as we can and put it in obj.value
+				read = cstream.readString(0xffffffff, obj);
+				str += obj.value;
+			} while (read != 0);
+			cstream.close();
+			this._cache.set(locale, str);
+			return str;
+		}
+		catch (e) {
+			//Zotero.debug(e);
 			return false;
 		}
-		var converterStream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-							   .createInstance(Components.interfaces.nsIConverterInputStream);
-		converterStream.init(rawStream, "UTF-8", 65535,
-			Components.interfaces.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-		var str = {};
-		converterStream.readString(channel.contentLength, str);
-		converterStream.close();
-		return str.value;
 	}
 };

@@ -1,9 +1,9 @@
 /*
     ***** BEGIN LICENSE BLOCK *****
     
-    Copyright © 2009 Center for History and New Media
+    Copyright © 2016 Center for History and New Media
                      George Mason University, Fairfax, Virginia, USA
-                     http://zotero.org
+                     https://www.zotero.org
     
     This file is part of Zotero.
     
@@ -24,37 +24,32 @@
 */
 
 Zotero.ID_Tracker = function () {
-	var _initialized = false;
 	var _tables = [
 		'collections',
 		'creators',
-		'creatorData',
 		'customFields',
 		'customItemTypes',
 		'itemDataValues',
 		'items',
+		'libraries',
+		'proxies',
 		'savedSearches',
 		'tags'
 	];
 	var _nextIDs = {};
 	
 	
-	function _init() {
-		Zotero.debug("Initializing ids");
+	this.init = Zotero.Promise.coroutine(function* () {
 		for (let table of _tables) {
-			_nextIDs[table] = _getNext(table);
+			_nextIDs[table] = yield _getNext(table);
 		}
-		_initialized = true;
-	}
+	});
 	
 	
 	/**
 	 * Gets an unused primary key id for a DB table
 	 */
 	this.get = function (table) {
-		if (!_initialized) {
-			_init();
-		}
 		if (!_nextIDs[table]) {
 			throw new Error("IDs not loaded for table '" + table + "'");
 		}
@@ -65,6 +60,9 @@ Zotero.ID_Tracker = function () {
 	
 	function _getTableColumn(table) {
 		switch (table) {
+			case 'libraries':
+				return 'libraryID';
+			
 			case 'itemDataValues':
 				return 'valueID';
 			
@@ -73,6 +71,9 @@ Zotero.ID_Tracker = function () {
 			
 			case 'creatorData':
 				return 'creatorDataID';
+			
+			case 'proxies':
+				return 'proxyID';
 			
 			default:
 				return table.substr(0, table.length - 1) + 'ID';
@@ -87,7 +88,7 @@ Zotero.ID_Tracker = function () {
 	 */
 	function _getNext(table) {
 		var sql = 'SELECT COALESCE(MAX(' + _getTableColumn(table) + ') + 1, 1) FROM ' + table;
-		return Zotero.DB.valueQuery(sql);
+		return Zotero.DB.valueQueryAsync(sql);
 	};
 }
 

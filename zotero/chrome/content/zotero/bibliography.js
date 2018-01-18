@@ -39,11 +39,13 @@ var Zotero_File_Interface_Bibliography = new function() {
 	var lastSelectedStyle,
 		lastSelectedLocale;
 	
+	var isDocPrefs = false;
+	
 	/*
 	 * Initialize some variables and prepare event listeners for when chrome is done
 	 * loading
 	 */
-	this.init = function () {
+	this.init = Zotero.Promise.coroutine(function* () {
 		// Set font size from pref
 		// Affects bibliography.xul and integrationDocPrefs.xul
 		var bibContainer = document.getElementById("zotero-bibliography-container");
@@ -65,21 +67,25 @@ var Zotero_File_Interface_Bibliography = new function() {
 			_io.style = Zotero.Prefs.get("export.lastStyle");
 		}
 		
+		// See note in style.js
+		if (!Zotero.Styles.initialized) {
+			// Initialize styles
+			yield Zotero.Styles.init();
+		}
+		
 		// add styles to list
+		
 		var styles = Zotero.Styles.getVisible();
-		var index = 0;
-		var nStyles = styles.length;
 		var selectIndex = null;
-		for(var i=0; i<nStyles; i++) {
+		for (let i=0; i < styles.length; i++) {
 			var itemNode = document.createElement("listitem");
 			itemNode.setAttribute("value", styles[i].styleID);
 			itemNode.setAttribute("label", styles[i].title);
 			listbox.appendChild(itemNode);
 			
 			if(styles[i].styleID == _io.style) {
-				selectIndex = index;
+				selectIndex = i;
 			}
-			index++;
 		}
 		
 		let requestedLocale;
@@ -104,6 +110,11 @@ var Zotero_File_Interface_Bibliography = new function() {
 		window.setTimeout(function () {
 			listbox.ensureIndexIsVisible(selectIndex);
 			listbox.selectedIndex = selectIndex;
+			if (listbox.selectedIndex == -1) {
+				// This can happen in tests if styles aren't loaded
+				Zotero.debug("No styles to select", 2);
+				return;
+			}
 			Zotero_File_Interface_Bibliography.styleChanged();
 		}, 0);
 		
@@ -129,10 +140,12 @@ var Zotero_File_Interface_Bibliography = new function() {
 				document.getElementById(method);
 		}
 		
-		// ONLY FOR integrationDocPrefs.xul: update status of displayAs, set
-		// bookmarks text
-		if(document.getElementById("displayAs")) {
+		// ONLY FOR integrationDocPrefs.xul: set selected endnotes/footnotes
+		isDocPrefs = !!document.getElementById("displayAs");
+		if (isDocPrefs) {
 			if(_io.useEndnotes && _io.useEndnotes == 1) document.getElementById("displayAs").selectedIndex = 1;
+			let dialog = document.getElementById("zotero-doc-prefs-dialog");
+			dialog.setAttribute('title', `${Zotero.clientName} - ${dialog.getAttribute('title')}`);
 		}
 		if(document.getElementById("formatUsing")) {
 			if(_io.fieldType == "Bookmark") document.getElementById("formatUsing").selectedIndex = 1;
@@ -154,16 +167,10 @@ var Zotero_File_Interface_Bibliography = new function() {
 				document.getElementById("automaticJournalAbbreviations-checkbox").checked = true;
 			}
 		}
-		if(document.getElementById("storeReferences")) {
-			if(_io.storeReferences || _io.storeReferences === undefined) {
-				document.getElementById("storeReferences").checked = true;
-				if(_io.requireStoreReferences) document.getElementById("storeReferences").disabled = true;
-			}
-		}
 		
 		// set style to false, in case this is cancelled
 		_io.style = false;
-	};
+	});
 
 	/*
 	 * Called when locale is changed
@@ -251,7 +258,7 @@ var Zotero_File_Interface_Bibliography = new function() {
 		}
 		
 		// ONLY FOR integrationDocPrefs.xul:
-		if(document.getElementById("displayAs")) {
+		if(isDocPrefs) {
 			var automaticJournalAbbreviationsEl = document.getElementById("automaticJournalAbbreviations-checkbox");
 			_io.automaticJournalAbbreviations = automaticJournalAbbreviationsEl.checked;
 			if(!automaticJournalAbbreviationsEl.hidden && lastSelectedStyle) {
@@ -259,7 +266,6 @@ var Zotero_File_Interface_Bibliography = new function() {
 			}
 			_io.useEndnotes = document.getElementById("displayAs").selectedIndex;
 			_io.fieldType = (document.getElementById("formatUsing").selectedIndex == 0 ? _io.primaryFieldType : _io.secondaryFieldType);
-			_io.storeReferences = document.getElementById("storeReferences").checked;
 		}
 		
 		// remember style and locale if user selected these explicitly
@@ -269,6 +275,16 @@ var Zotero_File_Interface_Bibliography = new function() {
 		
 		if (lastSelectedLocale) {
 			Zotero.Prefs.set("export.lastLocale", lastSelectedLocale);
+		}
+	};
+	
+	
+	this.manageStyles = function () {
+		document.documentElement.getButton('cancel').click();
+		var win = Zotero.Utilities.Internal.openPreferences('zotero-prefpane-cite', { tab: 'styles-tab' });
+		if (isDocPrefs) {
+			// TODO: Move activate() code elsewhere
+			Zotero.Integration.activate(win);
 		}
 	};
 }

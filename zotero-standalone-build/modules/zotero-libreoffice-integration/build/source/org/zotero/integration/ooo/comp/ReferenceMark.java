@@ -1,8 +1,8 @@
 /*
-    ***** BEGIN LICENSE BLOCK *****
+	***** BEGIN LICENSE BLOCK *****
 	
-	Copyright (c) 2009  Zotero
-	                    Center for History and New Media
+	Copyright (c) 2017  Zotero
+						Center for History and New Media
 						George Mason University, Fairfax, Virginia, USA
 						http://zotero.org
 	
@@ -18,8 +18,8 @@
 	
 	You should have received a copy of the GNU Affero General Public License
 	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
-    ***** END LICENSE BLOCK *****
+	
+	***** END LICENSE BLOCK *****
 */
 
 package org.zotero.integration.ooo.comp;
@@ -149,10 +149,20 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 	
 	public void setText(String textString, boolean isRich) throws Exception {
 		boolean isBibliography = getCode().startsWith("BIBL");
+		XTextCursor viewCursor = doc.getSelection();
 		
 		if(isBibliography) {
 			prepareMultiline();
 		}
+		
+		boolean viewCursorInField = false;
+		try {
+			if (textRangeCompare.compareRegionStarts(range, viewCursor) >= 0 &&
+					textRangeCompare.compareRegionEnds(range, viewCursor) <= 0) {
+				viewCursorInField = true;
+			}
+		// One of these cursors is not in this text, so we're good
+		} catch (com.sun.star.lang.IllegalArgumentException e) {}
 		
 		XTextCursor cursor = text.createTextCursorByRange(range);
 		if(!isBibliography && range.getString().equals("")) {
@@ -169,6 +179,16 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 				text.insertControlCharacter(range, ControlCharacter.PARAGRAPH_BREAK, false);
 				text.insertControlCharacter(range.getEnd(), ControlCharacter.PARAGRAPH_BREAK, false);
 				cursor.collapseToStart();
+				
+				// But don't move the cursor to the note
+				if (viewCursorInField && !isNote) {
+					// LibreOffice crashes while inserting RTF if we don't move the viewCursor here.
+					// Affects Ubuntu and maybe MacOS.
+					// Don't ask me why it crashes though. 
+					viewCursor.gotoRange((XTextRange) cursor, false);
+					viewCursor.goLeft((short)1, false);
+				}
+				
 				moveCursorRight(cursor, previousLen);
 			}
 		}
@@ -248,6 +268,12 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 				if(str.equals("\n") || str.equals("\r\n")) {
 					dupRange.setString("");
 				}
+				
+				if (viewCursorInField && !isNote) {
+					// Restoring cursor position from crash-prevention jiggle
+					viewCursor.gotoRange(dupRange, false);
+					viewCursor.collapseToEnd();
+				}
 
 				dupRange = text.createTextCursorByRange(range);
 				dupRange.collapseToStart();
@@ -263,6 +289,16 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 		String oldRawCode = rawCode;
 		rawCode = Document.PREFIXES[0] + code + " RND" + Document.getRandomString(Document.REFMARK_ADD_CHARS);
 		doc.mMarkManager.renameMark(oldRawCode, rawCode);
+		// Setting the ReferenceMark name resets the style to the document default, so
+		// we store the previous style.
+		XPropertySet rangeProps = (XPropertySet) UnoRuntime.queryInterface(XPropertySet.class, range);
+		Object[] oldPropertyValues = new Object[PROPERTIES_CHANGE_TO_DEFAULT.length];
+		for(int i=0; i<PROPERTIES_CHANGE_TO_DEFAULT.length; i++) {
+			Object result = rangeProps.getPropertyValue(PROPERTIES_CHANGE_TO_DEFAULT[i]);
+			oldPropertyValues[i] = result instanceof Any ? ((Any) result).getObject() : result;
+		}
+		
+		// Set the actual referenceMark code.
 		if(isTextSection) {
 			named.setName(rawCode);
 		} else {
@@ -270,6 +306,14 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 			removeCode();
 			reattachMark();
 		}
+		
+		// And restore the style here
+		for(int i=0; i<PROPERTIES_CHANGE_TO_DEFAULT.length; i++) {
+			if(oldPropertyValues[i] != null) {
+				rangeProps.setPropertyValue(PROPERTIES_CHANGE_TO_DEFAULT[i], oldPropertyValues[i]);
+			}
+		}
+		getOutOfField();
 	}
 	
 	public String getCode() throws Exception {
@@ -347,8 +391,9 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 			if(isNote && o.isNote) {
 				try {
 					cmp = textRangeCompare.compareRegionStarts(o.range, range);
-				} catch (com.sun.star.lang.IllegalArgumentException e) {
-					doc.displayAlert(Document.getErrorString(e), 0, 0);
+				} catch (Exception e) {
+					//doc.displayAlert(Document.getErrorString(e), 0, 0);
+					e.printStackTrace();
 					return 0;
 				}
 			} else if(table != null && o.table != null) {
@@ -361,11 +406,9 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 				try {
 					cell1Name = (String) cell1.getPropertyValue("CellName");
 					cell2Name = (String) cell2.getPropertyValue("CellName");
-				} catch (UnknownPropertyException e) {
-					doc.displayAlert(Document.getErrorString(e), 0, 0);
-					return 0;
-				} catch (WrappedTargetException e) {
-					doc.displayAlert(Document.getErrorString(e), 0, 0);
+				} catch (Exception e) {
+					//doc.displayAlert(Document.getErrorString(e), 0, 0);
+					e.printStackTrace();
 					return 0;
 				}
 				
@@ -373,8 +416,9 @@ public class ReferenceMark implements Comparable<ReferenceMark> {
 					// should be in the same cell; compare ranges directly
 					try {
 						cmp = textRangeCompare.compareRegionStarts(o.range, range);
-					} catch (com.sun.star.lang.IllegalArgumentException e) {
-						doc.displayAlert(Document.getErrorString(e), 0, 0);
+					} catch (Exception e) {
+						//doc.displayAlert(Document.getErrorString(e), 0, 0);
+						e.printStackTrace();
 						return 0;
 					}
 				} else {

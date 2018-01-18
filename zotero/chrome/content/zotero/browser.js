@@ -44,12 +44,9 @@ var Zotero_Browser = new function() {
 	this.toggleMode = toggleMode;
 	this.toggleCollapsed = toggleCollapsed;
 	this.chromeLoad = chromeLoad;
-	this.contentLoad = contentLoad;
 	this.itemUpdated = itemUpdated;
-	this.contentHide = contentHide;
 	this.tabClose = tabClose;
 	this.resize = resize;
-	this.updateStatus = updateStatus;
 	
 	this.tabbrowser = null;
 	this.appcontent = null;
@@ -57,6 +54,7 @@ var Zotero_Browser = new function() {
 	
 	var _browserData = new WeakMap();
 	var _attachmentsMap = new WeakMap();
+	var _detectCallbacks = [];
 	
 	var _blacklist = [
 		"googlesyndication.com",
@@ -100,15 +98,16 @@ var Zotero_Browser = new function() {
 	 * Initialize some variables and prepare event listeners for when chrome is done loading
 	 */
 	function init() {
+		// No gBrowser - running in standalone
 		if (!window.hasOwnProperty("gBrowser")) {
 			return;
 		}
 		
 		var zoteroInitDone;
-		if (!Zotero || !Zotero.initialized) {
+		if (!Zotero || Zotero.skipLoading) {
 			// Zotero either failed to load or is reloading in Connector mode
 			// In case of the latter, listen for the 'zotero-loaded' event (once) and retry
-			var zoteroInitDone_deferred = Q.defer();
+			var zoteroInitDone_deferred = Zotero.Promise.defer();
 			var obs = Components.classes["@mozilla.org/observer-service;1"]
 				.getService(Components.interfaces.nsIObserverService);
 			var observer = {
@@ -121,14 +120,14 @@ var Zotero_Browser = new function() {
 			
 			zoteroInitDone = zoteroInitDone_deferred.promise;
 		} else {
-			zoteroInitDone = Q();
+			zoteroInitDone = Zotero.Promise.resolve();
 		}
 		
-		var chromeLoaded = Q.defer();
+		var chromeLoaded = Zotero.Promise.defer();
 		window.addEventListener("load", function(e) { chromeLoaded.resolve() }, false);
 		
 		// Wait for Zotero to init and chrome to load before proceeding
-		Q.all([
+		Zotero.Promise.all([
 			zoteroInitDone.then(function() {
 				ZoteroPane_Local.addReloadListener(reload);
 				reload();
@@ -137,8 +136,7 @@ var Zotero_Browser = new function() {
 		])
 		.then(function() {
 			Zotero_Browser.chromeLoad()
-		})
-		.done();
+		});
 	}
 	
 	/**
@@ -154,29 +152,34 @@ var Zotero_Browser = new function() {
 	 *
 	 * @param {String} [translator]
 	 * @param {Event} [event]
+	 * @return {Promise}
 	 */
-	this.scrapeThisPage = function (translator, event) {
+	this.scrapeThisPage = Zotero.Promise.coroutine(function* (translator, event) {
 		// Perform translation
 		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 		var page = tab.getPageObject();
 		if(page.translators && page.translators.length) {
 			page.translate.setTranslator(translator || page.translators[0]);
-			Zotero_Browser.performTranslation(page.translate);
+			yield Zotero_Browser.performTranslation(page.translate);
 		}
 		else {
-			this.saveAsWebPage(
+			yield this.saveAsWebPage(
 				(event && event.shiftKey) ? !Zotero.Prefs.get('automaticSnapshots') : null
 			);
 		}
-	}
+	});
 	
-	// Keep in sync with cmd_zotero_newItemFromCurrentPage
+	/**
+	 * Keep in sync with cmd_zotero_newItemFromCurrentPage
+	 *
+	 * @return {Promise}
+	 */
 	this.saveAsWebPage = function (includeSnapshots) {
 		// DEBUG: Possible to just trigger command directly with event? Assigning it to the
 		// command property of the icon doesn't seem to work, and neither does goDoCommand()
 		// from chrome://global/content/globalOverlay.js. Getting the command by id and
 		// running doCommand() works but doesn't pass the event.
-		ZoteroPane.addItemFromPage('temporaryPDFHack', includeSnapshots);
+		return ZoteroPane.addItemFromPage('temporaryPDFHack', includeSnapshots);
 	}
 	
 	/*
@@ -250,6 +253,7 @@ var Zotero_Browser = new function() {
 		gBrowser.tabContainer.addEventListener("TabSelect",
 			function(e) {
 				//Zotero.debug("TabSelect");
+				// Note: async
 				Zotero_Browser.updateStatus();
 			}, false);
 		// this is for pageshow, for updating the status of the book icon
@@ -265,18 +269,9 @@ var Zotero_Browser = new function() {
 			function(e) { Zotero_Browser.resize(e) }, false);
 		// Resize on text zoom changes
 		
-		// Fx2
-		var reduce = document.getElementById('cmd_textZoomReduce');
-		if (reduce) {
-			var enlarge = document.getElementById('cmd_textZoomEnlarge');
-			var reset = document.getElementById('cmd_textZoomReset');
-		}
-		// Fx3
-		else {
-			var reduce = document.getElementById('cmd_fullZoomReduce');
-			var enlarge = document.getElementById('cmd_fullZoomEnlarge');
-			var reset = document.getElementById('cmd_fullZoomReset');
-		}
+		var reduce = document.getElementById('cmd_fullZoomReduce');
+		var enlarge = document.getElementById('cmd_fullZoomEnlarge');
+		var reset = document.getElementById('cmd_fullZoomReset');
 		
 		if(reduce) reduce.addEventListener("command",
 			function(e) { Zotero_Browser.resize(e) }, false);
@@ -291,7 +286,7 @@ var Zotero_Browser = new function() {
 	 * An event handler called when a new document is loaded. Creates a new document
 	 * object, and updates the status of the capture icon
 	 */
-	function contentLoad(event) {
+	var contentLoad = function (event) {
 		var doc = event.originalTarget;
 		var isHTML = doc instanceof HTMLDocument;
 		var rootDoc = (doc instanceof HTMLDocument ? doc.defaultView.top.document : doc);
@@ -362,12 +357,12 @@ var Zotero_Browser = new function() {
 				contentWin.haveZoteroEventListener = true;
 			}
 		}
-	}
+	};
 
 	/*
 	 * called to unregister Zotero icon, etc.
 	 */
-	function contentHide(event) {
+	this.contentHide = function (event) {
 		var doc = event.originalTarget;
 		if(!(doc instanceof HTMLDocument)) return;
 	
@@ -390,7 +385,8 @@ var Zotero_Browser = new function() {
 		
 		// update status
 		if(Zotero_Browser.tabbrowser.selectedBrowser == browser) {
-			updateStatus();
+			// Note: async
+			this.updateStatus();
 		}
 	}
 	
@@ -440,7 +436,13 @@ var Zotero_Browser = new function() {
 	 * Updates the status of the capture icon to reflect the scrapability or lack
 	 * thereof of the current page
 	 */
-	function updateStatus() {
+	this.updateStatus = Zotero.Promise.coroutine(function* () {
+		// Wait for translator initialization. This allows detection to still run on a page at startup
+		// once translators have finished loading.
+		if (Zotero.Schema && Zotero.Schema.schemaUpdatePromise.isPending()) {
+			yield Zotero.Schema.schemaUpdatePromise;
+		}
+		
 		if (!Zotero_Browser.tabbrowser) return;
 		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 		
@@ -471,7 +473,21 @@ var Zotero_Browser = new function() {
 		} else {
 			document.getElementById('zotero-annotate-tb').hidden = true;
 		}
-	}
+	});
+	
+	this.addDetectCallback = function (func) {
+		_detectCallbacks.push(func);
+	};
+	
+	this.resolveDetectCallbacks = Zotero.Promise.coroutine(function* () {
+		while (_detectCallbacks.length) {
+			let cb = _detectCallbacks.shift();
+			var res = cb();
+			if (res && res.then) {
+				yield res.then;
+			}
+		}
+	});
 	
 	function getSaveButtons() {
 		Components.utils.import("resource:///modules/CustomizableUI.jsm");
@@ -583,27 +599,14 @@ var Zotero_Browser = new function() {
 	 * have been called
 	 * @param {Zotero.Translate} translate
 	 */
-	this.performTranslation = function(translate, libraryID, collection) {
+	this.performTranslation = Zotero.Promise.coroutine(function* (translate, libraryID, collection) {
 		if (Zotero.locked) {
-			Zotero_Browser.progress.changeHeadline(Zotero.getString("ingester.scrapeError"));
-			var desc = Zotero.localeJoin([
-				Zotero.getString('general.operationInProgress'),
-				Zotero.getString('general.operationInProgress.waitUntilFinishedAndTryAgain')
-			]);
-			Zotero_Browser.progress.addDescription(desc);
-			Zotero_Browser.progress.show();
-			Zotero_Browser.progress.startCloseTimer(8000);
+			Zotero_Browser.progress.Translation.operationInProgress();
 			return;
 		}
 		
-		if (!Zotero.stateCheck()) {
-			Zotero_Browser.progress.changeHeadline(Zotero.getString("ingester.scrapeError"));
-			var desc = Zotero.getString("ingester.scrapeErrorDescription.previousError")
-				+ ' ' + Zotero.getString("general.restartFirefoxAndTryAgain", Zotero.appName);
-			Zotero_Browser.progress.addDescription(desc);
-			Zotero_Browser.progress.show();
-			Zotero_Browser.progress.startCloseTimer(8000);
-			return;
+		if (!Zotero.isConnector && Zotero.DB.inTransaction()) {
+			yield Zotero.DB.waitForTransaction();
 		}
 		
 		Zotero_Browser.progress.show();
@@ -611,101 +614,67 @@ var Zotero_Browser = new function() {
 		
 		// Get libraryID and collectionID
 		if(libraryID === undefined && ZoteroPane && !Zotero.isConnector) {
-			try {
-				if (!ZoteroPane.collectionsView.editable) {
-					Zotero_Browser.progress.changeHeadline(Zotero.getString("ingester.scrapeError"));
-					var desc = Zotero.getString('save.error.cannotMakeChangesToCollection');
-					Zotero_Browser.progress.addDescription(desc);
-					Zotero_Browser.progress.show();
-					Zotero_Browser.progress.startCloseTimer(8000);
-					return;
-				}
-				
+			// Save to My Library by default if pane hasn't been opened
+			if (!ZoteroPane.collectionsView || !ZoteroPane.collectionsView.selectedTreeRow) {
+				libraryID = Zotero.Libraries.userLibraryID;
+			}
+			else if (!ZoteroPane.collectionsView.editable) {
+				Zotero_Browser.progress.Translation.cannotEditCollection();
+				return;
+			}
+			else {
 				libraryID = ZoteroPane.getSelectedLibraryID();
-				collection = ZoteroPane.getSelectedCollection();
-			} catch(e) {
-				Zotero.debug(e, 1);
+			}
+			
+			collection = ZoteroPane.getSelectedCollection();
+		}
+		
+		if (!Zotero.isConnector) {
+			if (ZoteroPane.collectionsView
+					&& ZoteroPane.collectionsView
+					&& ZoteroPane.collectionsView.selectedTreeRow
+					&& ZoteroPane.collectionsView.selectedTreeRow.isPublications()) {
+				Zotero_Browser.progress.Translation.cannotAddToPublications();
+				return;
+			}
+			
+			if (Zotero.Feeds.get(libraryID)) {
+				Zotero_Browser.progress.Translation.cannotAddToFeed();
+				return;
 			}
 		}
 		
-		if(Zotero.isConnector) {
-			Zotero.Connector.callMethod("getSelectedCollection", {}, function(response, status) {
-				if(status !== 200) {
-					Zotero_Browser.progress.changeHeadline(Zotero.getString("ingester.scraping"));
-				} else {
-					Zotero_Browser.progress.changeHeadline(Zotero.getString("ingester.scrapingTo"),
-						"chrome://zotero/skin/treesource-"+(response.id ? "collection" : "library")+".png",
-						response.name+"\u2026");
-				}
-			});
-		} else {
-			var name;
-			if(collection) {
-				name = collection.name;
-			} else if(libraryID) {
-				name = Zotero.Libraries.getName(libraryID);
-			} else {
-				name = Zotero.getString("pane.collections.library");
-			}
-			
-			Zotero_Browser.progress.changeHeadline(Zotero.getString("ingester.scrapingTo"),
-				"chrome://zotero/skin/treesource-"+(collection ? "collection" : "library")+".png",
-				name+"\u2026");
-		}
+		Zotero_Browser.progress.Translation.scrapingTo(libraryID, collection);
 		
 		translate.clearHandlers("done");
 		translate.clearHandlers("itemDone");
 		translate.clearHandlers("attachmentProgress");
 		
-		translate.setHandler("done", function(obj, returnValue) {		
-			if(!returnValue) {
-				Zotero_Browser.progress.show();
-				Zotero_Browser.progress.changeHeadline(Zotero.getString("ingester.scrapeError"));
-				// Include link to translator troubleshooting page
-				var url = "https://www.zotero.org/support/troubleshooting_translator_issues";
-				var linkText = '<a href="' + url + '" tooltiptext="' + url + '">'
-					+ Zotero.getString('ingester.scrapeErrorDescription.linkText') + '</a>';
-				Zotero_Browser.progress.addDescription(Zotero.getString("ingester.scrapeErrorDescription", linkText));
-				Zotero_Browser.progress.startCloseTimer(8000);
-			} else {
-				Zotero_Browser.progress.startCloseTimer();
-			}
+		var deferred = Zotero.Promise.defer();
+		
+		translate.setHandler("done", function() {
+			Zotero_Browser.progress.Translation.doneHandler.apply(Zotero_Browser.progress.Translation, arguments);
 			Zotero_Browser.isScraping = false;
+			deferred.resolve();
 		});
 		
-		translate.setHandler("itemDone", function(obj, dbItem, item) {
-			Zotero_Browser.progress.show();
-			var itemProgress = new Zotero_Browser.progress.ItemProgress(Zotero.ItemTypes.getImageSrc(item.itemType),
-				item.title);
-			itemProgress.setProgress(100);
-			for(var i=0; i<item.attachments.length; i++) {
-				var attachment = item.attachments[i];
-				_attachmentsMap.set(attachment,
-					new Zotero_Browser.progress.ItemProgress(
-						Zotero.Utilities.determineAttachmentIcon(attachment),
-						attachment.title, itemProgress));
-			}
-			
-			// add item to collection, if one was specified
-			if(collection) {
-				collection.addItem(dbItem.id);
-			}
+		translate.setHandler("itemDone", function() {
+			let handler = Zotero_Browser.progress.Translation.itemDoneHandler(_attachmentsMap);
+			handler.apply(Zotero_Browser.progress.Translation, arguments);
 		});
 		
-		translate.setHandler("attachmentProgress", function(obj, attachment, progress, error) {
-			var itemProgress = _attachmentsMap.get(attachment);
-			if(progress === false) {
-				itemProgress.setError();
-			} else {
-				itemProgress.setProgress(progress);
-				if(progress === 100) {
-					itemProgress.setIcon(Zotero.Utilities.determineAttachmentIcon(attachment));
-				}
-			}
+		translate.setHandler("attachmentProgress", function() {
+			let handler = Zotero_Browser.progress.Translation.attachmentProgressHandler(_attachmentsMap);
+			handler.apply(Zotero_Browser.progress.Translation, arguments);
 		});
 		
-		translate.translate(libraryID);
-	}
+		translate.translate({
+			libraryID,
+			collections: collection ? [collection.id] : false
+		});
+		
+		return deferred.promise;
+	});
 	
 	
 	//////////////////////////////////////////////////////////////////////////////
@@ -829,7 +798,17 @@ Zotero_Browser.Tab.prototype.clear = function() {
 /*
  * detects translators for this browser object
  */
-Zotero_Browser.Tab.prototype.detectTranslators = function(rootDoc, doc) {
+Zotero_Browser.Tab.prototype.detectTranslators = Zotero.Promise.coroutine(function* (rootDoc, doc) {
+	if (Zotero.Schema && Zotero.Schema.schemaUpdatePromise.isPending()) {
+		yield Zotero.Schema.schemaUpdatePromise;
+	}
+	
+	// If document no longer exists after waiting for schema updates (probably because another page has
+	// been loaded), bail
+	if (Components.utils.isDeadWrapper(doc)) {
+		return;
+	}
+	
 	if (doc instanceof HTMLDocument) {
 		if (doc.documentURI.startsWith("about:")) {
 			return;
@@ -846,7 +825,7 @@ Zotero_Browser.Tab.prototype.detectTranslators = function(rootDoc, doc) {
 	} else if(doc.documentURI.substr(0, 7) == "file://") {
 		this._attemptLocalFileImport(doc);
 	}
-}
+});
 
 
 /*
@@ -919,13 +898,11 @@ Zotero_Browser.Tab.prototype.getCaptureState = function () {
  * current page, or false if the page cannot be scraped
  */
 Zotero_Browser.Tab.prototype.getCaptureIcon = function (hiDPI) {
-	var suffix = hiDPI ? "@2x" : "";
-	
 	switch (this.getCaptureState()) {
 	case this.CAPTURE_STATE_TRANSLATABLE:
 		var itemType = this.getPageObject().translators[0].itemType;
 		return (itemType === "multiple"
-				? "chrome://zotero/skin/treesource-collection" + suffix + ".png"
+				? "chrome://zotero/skin/treesource-collection" + Zotero.hiDPISuffix + ".png"
 				: Zotero.ItemTypes.getImageSrc(itemType));
 	
 	default:
@@ -935,8 +912,7 @@ Zotero_Browser.Tab.prototype.getCaptureIcon = function (hiDPI) {
 
 // TODO: Show icons for images, PDFs, etc.?
 Zotero_Browser.Tab.prototype.getWebPageCaptureIcon = function (hiDPI) {
-	var suffix = hiDPI ? "@2x" : "";
-	return "chrome://zotero/skin/treeitem-webpage" + suffix + ".png";
+	return "chrome://zotero/skin/treeitem-webpage" + Zotero.hiDPISuffix + ".png";
 }
 
 Zotero_Browser.Tab.prototype.getCaptureTooltip = function() {
@@ -1005,8 +981,9 @@ Zotero_Browser.Tab.prototype._selectItems = function(obj, itemList, callback) {
 /*
  * called when translators are available
  */
-Zotero_Browser.Tab.prototype._translatorsAvailable = function(translate, translators) {
+Zotero_Browser.Tab.prototype._translatorsAvailable = Zotero.Promise.coroutine(function* (translate, translators) {
 	var page = this.getPageObject();
+	if (!page) return;
 	page.saveEnabled = true;
 	
 	if(translators && translators.length) {
@@ -1052,7 +1029,8 @@ Zotero_Browser.Tab.prototype._translatorsAvailable = function(translate, transla
 	
 	if(!translators || !translators.length) Zotero.debug("Translate: No translators found");
 	
-	Zotero_Browser.updateStatus();
-}
+	yield Zotero_Browser.updateStatus();
+	yield Zotero_Browser.resolveDetectCallbacks();
+});
 
 Zotero_Browser.init();

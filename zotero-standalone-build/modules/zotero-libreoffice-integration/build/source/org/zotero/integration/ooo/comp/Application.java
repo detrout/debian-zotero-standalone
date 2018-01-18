@@ -1,8 +1,8 @@
 /*
-    ***** BEGIN LICENSE BLOCK *****
+	***** BEGIN LICENSE BLOCK *****
 	
-	Copyright (c) 2009  Zotero
-	                    Center for History and New Media
+	Copyright (c) 2017  Zotero
+						Center for History and New Media
 						George Mason University, Fairfax, Virginia, USA
 						http://zotero.org
 	
@@ -18,11 +18,13 @@
 	
 	You should have received a copy of the GNU Affero General Public License
 	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
-    
-    ***** END LICENSE BLOCK *****
+	
+	***** END LICENSE BLOCK *****
 */
 
 package org.zotero.integration.ooo.comp;
+
+import java.util.HashMap;
 
 import com.sun.star.beans.PropertyValue;
 import com.sun.star.container.XNameAccess;
@@ -38,19 +40,38 @@ public class Application {
 	static String ooVersion;
 	static XComponentContext ctx;
 	static SaveEventListener saveEventListener;
+	private static HashMap <Integer, Document> documents = new HashMap<Integer, Document>();
+	private static int lastDocumentID = 0;
 
 	public Application(XComponentContext aCtx) throws Exception {
 		ctx = aCtx;
 		if(desktop == null) init();
 	}
-
+	
 	public Document getActiveDocument() throws Exception {
+		return getDocument(getActiveDocumentID());
+	}
+
+	public int getActiveDocumentID() throws Exception {
+		if(lastDocumentID == Integer.MAX_VALUE) lastDocumentID = 0;
+		Integer documentID = ++lastDocumentID;
+		Document document;
 		try {
-			return new Document(this);
+			document = new Document(this, documentID);
 		} catch(Exception e) {
 			init();
-			return new Document(this);
+			document = new Document(this, documentID);
 		}
+		documents.put(documentID, document);
+		return documentID;
+	}
+	
+	public Document getDocument(int documentID) {
+		return documents.get(documentID);
+	}
+	
+	public void documentComplete(int documentID) {
+		documents.remove(documentID);
 	}
 	
 	private void init() throws Exception {

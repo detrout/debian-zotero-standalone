@@ -1,8 +1,8 @@
 /*
-    ***** BEGIN LICENSE BLOCK *****
+	***** BEGIN LICENSE BLOCK *****
 	
-	Copyright (c) 2009  Zotero
-	                    Center for History and New Media
+	Copyright (c) 2017  Zotero
+						Center for History and New Media
 						George Mason University, Fairfax, Virginia, USA
 						http://zotero.org
 	
@@ -19,16 +19,14 @@
 	You should have received a copy of the GNU Affero General Public License
 	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
 	
-    ***** END LICENSE BLOCK *****
+	***** END LICENSE BLOCK *****
 */
 
 var EXPORTED_SYMBOLS = ["Installer"];
 var Zotero = Components.classes["@zotero.org/Zotero;1"].getService(Components.interfaces.nsISupports).wrappedJSObject;
-var ZoteroPluginInstaller = Components.utils.import("resource://zotero-openoffice-integration/installer_common.jsm").ZoteroPluginInstaller;
-var Installer = function(failSilently, force) {
-	return new ZoteroPluginInstaller(Plugin,
-		failSilently !== undefined ? failSilently : Zotero.isStandalone,
-		force);
+var ZoteroPluginInstaller = Components.utils.import("resource://zotero/word-processor-plugin-installer.js").ZoteroPluginInstaller;
+var Installer = function(failSilently=true, force) {
+	return new ZoteroPluginInstaller(Plugin, failSilently, force);
 }
 
 const UNOPKG_LOCATIONS = {
@@ -40,6 +38,8 @@ const UNOPKG_LOCATIONS = {
 		"/Applications/OpenOffice.org 2.4.app/Contents/MacOS/unopkg"
 	],
 	Win:[
+		"C:\\Program Files\\LibreOffice 5\\program\\unopkg.exe",
+		"C:\\Program Files (x86)\\LibreOffice 5\\program\\unopkg.exe",
 		"C:\\Program Files\\LibreOffice 4\\program\\unopkg.exe",
 		"C:\\Program Files (x86)\\LibreOffice 4\\program\\unopkg.exe",
 		"C:\\Program Files\\LibreOffice 4.0\\program\\unopkg.exe",
@@ -120,7 +120,13 @@ const UNOPKG_LOCATIONS = {
 		"/opt/libreoffice3.6/program/unopkg",
 		"/opt/libreoffice3.7/program/unopkg",
 		"/opt/libreoffice4.0/program/unopkg",
-		"/opt/libreoffice4.1/program/unopkg"
+		"/opt/libreoffice4.1/program/unopkg",
+		"/opt/libreoffice4.2/program/unopkg",
+		"/opt/libreoffice5.0/program/unopkg",
+		"/opt/libreoffice5.1/program/unopkg",
+		"/opt/libreoffice5.2/program/unopkg",
+		"/opt/libreoffice5.3/program/unopkg",
+		"/opt/libreoffice5.4/program/unopkg"
 	]
 };
 
@@ -143,7 +149,7 @@ var Plugin = new function() {
 	this.EXTENSION_ID = "zoteroOpenOfficeIntegration@zotero.org";
 	this.EXTENSION_PREF_BRANCH = "extensions.zoteroOpenOfficeIntegration.";
 	this.EXTENSION_DIR = "zotero-openoffice-integration";
-	this.APP = 'LibreOffice/OpenOffice.org/NeoOffice';
+	this.APP = 'LibreOffice';
 	
 	this.REQUIRED_ADDONS = [{
 		name: "Zotero",
@@ -165,7 +171,8 @@ var Plugin = new function() {
 		required: false
 	}];
 	
-	this.LAST_INSTALLED_FILE_UPDATE = "3.5.7.999";
+	// Bump if you want to trigger auto-update
+	this.LAST_INSTALLED_FILE_UPDATE = "5.0.6pre";
 	this.DISABLE_PROGRESS_WINDOW = true;
 	
 	var zoteroPluginInstaller, pathToAddon, installing, prefBranch, wizardWindow;
@@ -235,7 +242,7 @@ var Plugin = new function() {
 	}
 	
 	/**
-	 * Gets a list of potential OpenOffice.org installations by
+	 * Gets a list of potential LibreOffice installations by
 	 * checking paths and checking the preferences.
 	 *
 	 * @return {Object} An object whose keys are paths and whose values
@@ -295,7 +302,7 @@ var Plugin = new function() {
 			}
 		}
 
-		for each(var potentialLocation in potentialLocations) {
+		for (let potentialLocation of potentialLocations) {
 			try {
 				var file = Plugin.getFile(potentialLocation);
 			} catch(e) {
@@ -311,7 +318,7 @@ var Plugin = new function() {
 	}
 	
 	/**
-	 * Gets the path to the OpenOffice.org oxt file
+	 * Gets the path to the LibreOffice oxt file
 	 * @return {nsIFile}
 	 */
 	this.getOxtPath = function() {
@@ -322,7 +329,7 @@ var Plugin = new function() {
 	}
 	
 	/**
-	 * Installs OpenOffice.org components
+	 * Installs LibreOffice components
 	 * @param {String[]} unopkgPaths Paths to unopkg
 	 * @param {Function} callback Function to call when installation is complete. Argument 
 	 *		reflects whether installation was successful.

@@ -69,11 +69,12 @@ pref("places.history.enabled", false);
 // Probably not used, but prevent an error in the console
 pref("app.support.baseURL", "https://www.zotero.org/support/");
 
-// Disable Telemetry and Health Report
+// Disable Telemetry, Health Report, and error reporting
 pref("toolkit.telemetry.unified", false);
 pref("toolkit.telemetry.enabled", false);
 pref("datareporting.healthreport.service.enabled", false);
 pref("datareporting.policy.dataSubmissionEnabled", false);
+pref("toolkit.crashreporter.enabled", false);
 
 // Preferences to allow updating add-ons from AMO
 // TODO: Does this work for Standalone, or do we need to pretend to be Firefox?
@@ -110,15 +111,15 @@ pref("app.update.silent", false);
 
 // Update service URL:
 // You do not need to use all the %VAR% parameters. Use what you need, %PRODUCT%,%VERSION%,%BUILD_ID%,%CHANNEL% for example
-pref("app.update.url", "https://www.zotero.org/download/standalone/update/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/update.xml");
+pref("app.update.url", "https://www.zotero.org/download/client/update/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/update.xml");
 
 // URL user can browse to manually if for some reason all update installation
 // attempts fail.
-pref("app.update.url.manual", "http://www.zotero.org/support/standalone");
+pref("app.update.url.manual", "https://www.zotero.org/download");
 
 // A default value for the "More information about this update" link
 // supplied in the "An update is available" page of the update wizard.
-pref("app.update.url.details", "http://www.zotero.org/support/standalone_changelog");
+pref("app.update.url.details", "https://www.zotero.org/support/changelog");
 
 // User-settable override to app.update.url for testing purposes.
 //pref("app.update.url.override", "");

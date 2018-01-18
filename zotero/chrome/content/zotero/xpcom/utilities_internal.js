@@ -30,15 +30,42 @@
  * @class Utility functions not made available to translators
  */
 Zotero.Utilities.Internal = {
+	SNAPSHOT_SAVE_TIMEOUT: 30000,
 	
 	/**
-	 * Unicode normalization
+	 * Run a function on chunks of a given size of an array's elements.
+	 *
+	 * @param {Array} arr
+	 * @param {Integer} chunkSize
+	 * @param {Function} func - A promise-returning function
+	 * @return {Array} The return values from the successive runs
+	 */
+	"forEachChunkAsync": Zotero.Promise.coroutine(function* (arr, chunkSize, func) {
+		var retValues = [];
+		var tmpArray = arr.concat();
+		var num = arr.length;
+		var done = 0;
+		
+		do {
+			var chunk = tmpArray.splice(0, chunkSize);
+			done += chunk.length;
+			retValues.push(yield func(chunk));
+		}
+		while (done < num);
+		
+		return retValues;
+	}),
+	
+	
+	/**
+	 * Copy a text string to the clipboard
 	 */
 	"copyTextToClipboard":function(str) {
 		Components.classes["@mozilla.org/widget/clipboardhelper;1"]
 			.getService(Components.interfaces.nsIClipboardHelper)
 			.copyString(str);
 	},
+	
 	
 	 /*
 	 * Adapted from http://developer.mozilla.org/en/docs/nsICryptoHash
@@ -60,6 +87,10 @@ Zotero.Utilities.Internal = {
 			ch.update(data, data.length);
 		}
 		else if (strOrFile instanceof Components.interfaces.nsIFile) {
+			if (!strOrFile.exists()) {
+				return false;
+			}
+			
 			// Otherwise throws (NS_ERROR_NOT_AVAILABLE) [nsICryptoHash.updateFromStream]
 			if (!strOrFile.fileSize) {
 				// MD5 for empty string
@@ -69,7 +100,7 @@ Zotero.Utilities.Internal = {
 			var istream = Components.classes["@mozilla.org/network/file-input-stream;1"]
 							.createInstance(Components.interfaces.nsIFileInputStream);
 			// open for reading
-			istream.init(strOrFile, 0x01, 0444, 0);
+			istream.init(strOrFile, 0x01, 0o444, 0);
 			var ch = Components.classes["@mozilla.org/security/hash;1"]
 						   .createInstance(Components.interfaces.nsICryptoHash);
 			// we want to use the MD5 algorithm
@@ -109,11 +140,8 @@ Zotero.Utilities.Internal = {
 	 * @param {Boolean} [base64=FALSE]  Return as base-64-encoded string
 	 *                                  rather than hex string
 	 */
-	"md5Async": function (file, base64) {
-		Components.utils.import("resource://gre/modules/osfile.jsm");
+	md5Async: async function (file, base64) {
 		const CHUNK_SIZE = 16384;
-		
-		var deferred = Q.defer();
 		
 		function toHexString(charCode) {
 			return ("0" + charCode.toString(16)).slice(-2);
@@ -123,78 +151,172 @@ Zotero.Utilities.Internal = {
 				   .createInstance(Components.interfaces.nsICryptoHash);
 		ch.init(ch.MD5);
 		
-		// Recursively read chunks of the file, and resolve the promise
-		// with the hash when done
-		let readChunk = function readChunk(file) {
-			file.read(CHUNK_SIZE)
-			.then(
-				function readSuccess(data) {
-					ch.update(data, data.length);
-					if (data.length == CHUNK_SIZE) {
-						readChunk(file);
-					}
-					else {
-						let hash = ch.finish(base64);
-						
-						// Base64
-						if (base64) {
-							deferred.resolve(hash);
-						}
-						// Hex string
-						else {
-							let hexStr = "";
-							for (let i = 0; i < hash.length; i++) {
-								hexStr += toHexString(hash.charCodeAt(i));
-							}
-							deferred.resolve(hexStr);
-						}
-					}
-				},
-				function (e) {
-					try {
-						ch.finish(false);
-					}
-					catch (e) {}
-					
-					deferred.reject(e);
+		// Recursively read chunks of the file and return a promise for the hash
+		let readChunk = async function (file) {
+			try {
+				let data = await file.read(CHUNK_SIZE);
+				ch.update(data, data.length);
+				if (data.length == CHUNK_SIZE) {
+					return readChunk(file);
 				}
-			)
-			.then(
-				null,
-				function (e) {
-					try {
-						ch.finish(false);
-					}
-					catch (e) {}
-					
-					deferred.reject(e);
+				
+				let hash = ch.finish(base64);
+				// Base64
+				if (base64) {
+					return hash;
 				}
-			);
-		}
+				// Hex string
+				let hexStr = "";
+				for (let i = 0; i < hash.length; i++) {
+					hexStr += toHexString(hash.charCodeAt(i));
+				}
+				return hexStr;
+			}
+			catch (e) {
+				try {
+					ch.finish(false);
+				}
+				catch (e) {
+					Zotero.logError(e);
+				}
+				throw e;
+			}
+		};
 		
 		if (file instanceof OS.File) {
-			readChunk(file);
-		}
-		else {
-			if (file instanceof Components.interfaces.nsIFile) {
-				var path = file.path;
-			}
-			else {
-				var path = file;
-			}
-			OS.File.open(path)
-			.then(
-				function opened(file) {
-					readChunk(file);
-				},
-				function (e) {
-					deferred.reject(e);
-				}
-			);
+			return readChunk(file);
 		}
 		
-		return deferred.promise;
+		var path = (file instanceof Components.interfaces.nsIFile) ? file.path : file;
+		var hash;
+		try {
+			file = await OS.File.open(path);
+			hash = await readChunk(file);
+		}
+		finally {
+			await file.close();
+		}
+		return hash;
 	},
+	
+	
+	gzip: Zotero.Promise.coroutine(function* (data) {
+		var deferred = Zotero.Promise.defer();
+		
+		// Get input stream from POST data
+		var unicodeConverter = Components.classes["@mozilla.org/intl/scriptableunicodeconverter"]
+			.createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
+		unicodeConverter.charset = "UTF-8";
+		var is = unicodeConverter.convertToInputStream(data);
+		
+		// Initialize stream converter
+		var converter = Components.classes["@mozilla.org/streamconv;1?from=uncompressed&to=gzip"]
+			.createInstance(Components.interfaces.nsIStreamConverter);
+		converter.asyncConvertData(
+			"uncompressed",
+			"gzip",
+			{
+				binaryInputStream: null,
+				size: 0,
+				data: '',
+				
+				onStartRequest: function (request, context) {},
+				
+				onStopRequest: function (request, context, status) {
+					this.binaryInputStream.close();
+					delete this.binaryInputStream;
+					
+					deferred.resolve(this.data);
+				},
+				
+				onDataAvailable: function (request, context, inputStream, offset, count) {
+					this.size += count;
+					
+					this.binaryInputStream = Components.classes["@mozilla.org/binaryinputstream;1"]
+						.createInstance(Components.interfaces.nsIBinaryInputStream)
+					this.binaryInputStream.setInputStream(inputStream);
+					this.data += this.binaryInputStream.readBytes(this.binaryInputStream.available());
+				},
+				
+				QueryInterface: function (iid) {
+					if (iid.equals(Components.interfaces.nsISupports)
+						   || iid.equals(Components.interfaces.nsIStreamListener)) {
+						return this;
+					}
+					throw Components.results.NS_ERROR_NO_INTERFACE;
+				}
+			},
+			null
+		);
+		
+		// Send input stream to stream converter
+		var pump = Components.classes["@mozilla.org/network/input-stream-pump;1"]
+			.createInstance(Components.interfaces.nsIInputStreamPump);
+		pump.init(is, -1, -1, 0, 0, true);
+		pump.asyncRead(converter, null);
+		
+		return deferred.promise;
+	}),
+	
+	
+	gunzip: Zotero.Promise.coroutine(function* (data) {
+		var deferred = Zotero.Promise.defer();
+		
+		Components.utils.import("resource://gre/modules/NetUtil.jsm");
+		
+		var is = Components.classes["@mozilla.org/io/string-input-stream;1"]
+			.createInstance(Ci.nsIStringInputStream);
+		is.setData(data, data.length);
+		
+		var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
+			.createInstance(Components.interfaces.nsIBinaryInputStream);
+		bis.setInputStream(is);
+		
+		// Initialize stream converter
+		var converter = Components.classes["@mozilla.org/streamconv;1?from=gzip&to=uncompressed"]
+			.createInstance(Components.interfaces.nsIStreamConverter);
+		converter.asyncConvertData(
+			"gzip",
+			"uncompressed",
+			{
+				data: '',
+				
+				onStartRequest: function (request, context) {},
+				
+				onStopRequest: function (request, context, status) {
+					deferred.resolve(this.data);
+				},
+				
+				onDataAvailable: function (request, context, inputStream, offset, count) {
+					this.data += NetUtil.readInputStreamToString(
+						inputStream,
+						inputStream.available(),
+						{
+							charset: 'UTF-8',
+							replacement: 65533
+						}
+					)
+				},
+				
+				QueryInterface: function (iid) {
+					if (iid.equals(Components.interfaces.nsISupports)
+						   || iid.equals(Components.interfaces.nsIStreamListener)) {
+						return this;
+					}
+					throw Components.results.NS_ERROR_NO_INTERFACE;
+				}
+			},
+			null
+		);
+		
+		// Send input stream to stream converter
+		var pump = Components.classes["@mozilla.org/network/input-stream-pump;1"]
+			.createInstance(Components.interfaces.nsIInputStreamPump);
+		pump.init(bis, -1, -1, 0, 0, true);
+		pump.asyncRead(converter, null);
+		
+		return deferred.promise;
+	}),
 	
 	
 	/**
@@ -233,22 +355,15 @@ Zotero.Utilities.Internal = {
 					.getService(Components.interfaces.nsIPromptService);
 		var message, buttonText, buttonCallback;
 		
-		if (e.data) {
-			if (e.data.dialogText) {
-				message = e.data.dialogText;
-			}
-			if (typeof e.data.dialogButtonText != 'undefined') {
-				buttonText = e.data.dialogButtonText;
-				buttonCallback = e.data.dialogButtonCallback;
-			}
+		if (e.dialogButtonText !== undefined) {
+			buttonText = e.dialogButtonText;
+			buttonCallback = e.dialogButtonCallback;
 		}
-		if (!message) {
-			if (e.message) {
-				message = e.message;
-			}
-			else {
-				message = e;
-			}
+		if (e.message) {
+			message = e.message;
+		}
+		else {
+			message = e;
 		}
 		
 		if (typeof buttonText == 'undefined') {
@@ -284,21 +399,88 @@ Zotero.Utilities.Internal = {
 	/**
 	 * saveURI wrapper function
 	 * @param {nsIWebBrowserPersist} nsIWebBrowserPersist
-	 * @param {nsIURI} source URL
-	 * @param {nsISupports} target file
+	 * @param {nsIURI} uri URL
+	 * @param {nsIFile|string path} target file
+	 * @param {Object} [headers]
 	 */
-	saveURI: function (wbp, source, target) {
+	saveURI: function (wbp, uri, target, headers) {
 		// Handle gzip encoding
-		wbp.persistFlags |= Ci.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
+		wbp.persistFlags |= wbp.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
+		// If not explicitly using cache, skip it
+		if (!(wbp.persistFlags & wbp.PERSIST_FLAGS_FROM_CACHE)) {
+			wbp.persistFlags |= wbp.PERSIST_FLAGS_BYPASS_CACHE;
+		}
 		
-		// Firefox 35 and below
-		try {
-			wbp.saveURI(source, null, null, null, null, target, null);
+		if (typeof uri == 'string') {
+			uri = Services.io.newURI(uri, null, null);
 		}
-		// Firefox 36+ needs one more parameter
-		catch (e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
-			wbp.saveURI(source, null, null, null, null, null, target, null);
+		
+		target = Zotero.File.pathToFile(target);
+		
+		if (headers) {
+			headers = Object.keys(headers).map(x => x + ": " + headers[x]).join("\r\n") + "\r\n";
 		}
+		
+		wbp.saveURI(uri, null, null, null, null, headers, target, null);
+	},
+	
+	
+	saveDocument: function (document, destFile) {
+		const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
+		let wbp = Components.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+			.createInstance(nsIWBP);
+		wbp.persistFlags = nsIWBP.PERSIST_FLAGS_REPLACE_EXISTING_FILES
+			| nsIWBP.PERSIST_FLAGS_FORCE_ALLOW_COOKIES
+			| nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION
+			| nsIWBP.PERSIST_FLAGS_FROM_CACHE
+			| nsIWBP.PERSIST_FLAGS_CLEANUP_ON_FAILURE
+			// Mostly ads
+			| nsIWBP.PERSIST_FLAGS_IGNORE_IFRAMES
+			| nsIWBP.PERSIST_FLAGS_IGNORE_REDIRECTED_DATA;
+		
+		let encodingFlags = 0;
+		let filesFolder = null;
+		if (document.contentType == "text/plain") {
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_FORMATTED;
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_ABSOLUTE_LINKS;
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_NOFRAMES_CONTENT;
+		}
+		else {
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_ENCODE_BASIC_ENTITIES;
+			
+			// Save auxiliary files to the same folder
+			filesFolder = OS.Path.dirname(destFile);
+		}
+		const wrapColumn = 80;
+		
+		var deferred = Zotero.Promise.defer();
+		var listener = new Zotero.WebProgressFinishListener(function () {
+			deferred.resolve();
+		});
+		wbp.progressListener = listener;
+		
+		wbp.saveDocument(
+			document,
+			Zotero.File.pathToFile(destFile),
+			Zotero.File.pathToFile(filesFolder),
+			null,
+			encodingFlags,
+			wrapColumn
+		);
+		
+		// Cancel save after timeout has passed, so we return an error to the connector and don't stay
+		// saving forever
+		var timeoutID = setTimeout(function () {
+			if (deferred.promise.isPending()) {
+				Zotero.debug("Stopping save for " + document.location.href, 2);
+				//Zotero.debug(listener.getRequest());
+				deferred.reject("Snapshot save timeout on " + document.location.href);
+				wbp.cancelSave();
+			}
+		}, this.SNAPSHOT_SAVE_TIMEOUT);
+		deferred.promise.then(() => clearTimeout(timeoutID));
+		
+		return deferred.promise;
 	},
 	
 	
@@ -308,21 +490,23 @@ Zotero.Utilities.Internal = {
 	 * @param {String[]} args Arguments given
 	 * @return {Promise} Promise resolved to true if command succeeds, or an error otherwise
 	 */
-	"exec":function(cmd, args) {
+	"exec": Zotero.Promise.method(function (cmd, args) {
 		if (typeof cmd == 'string') {
 			Components.utils.import("resource://gre/modules/FileUtils.jsm");
 			cmd = new FileUtils.File(cmd);
 		}
 		
 		if(!cmd.isExecutable()) {
-			return Q.reject(cmd.path+" is not an executable");
+			throw new Error(cmd.path + " is not an executable");
 		}
 		
 		var proc = Components.classes["@mozilla.org/process/util;1"].
 				createInstance(Components.interfaces.nsIProcess);
 		proc.init(cmd);
 		
-		var deferred = Q.defer();
+		Zotero.debug("Running " + cmd.path + " " + args.map(arg => "'" + arg + "'").join(" "));
+		
+		var deferred = Zotero.Promise.defer();
 		proc.runwAsync(args, args.length, {"observe":function(subject, topic) {
 			if(topic !== "process-finished") {
 				deferred.reject(new Error(cmd.path+" failed"));
@@ -334,7 +518,7 @@ Zotero.Utilities.Internal = {
 		}});
 		
 		return deferred.promise;
-	},
+	}),
 
 	/**
 	 * Get string data from the clipboard
@@ -374,6 +558,158 @@ Zotero.Utilities.Internal = {
 		}
 	},
 	
+	
+	/**
+	 * Returns a DOMDocument object not attached to any window
+	 */
+	"getDOMDocument": function() {
+		return Components.classes["@mozilla.org/xmlextras/domparser;1"]
+			.createInstance(Components.interfaces.nsIDOMParser)
+			.parseFromString("<!DOCTYPE html><html></html>", "text/html");
+	},
+	
+	
+	/**
+	 * Update HTML links within XUL
+	 *
+	 * @param {HTMLElement} elem - HTML element to modify
+	 * @param {Object} [options] - Properties:
+	 *                                 .linkEvent - An object to pass to ZoteroPane.loadURI() to
+	 *                                 simulate modifier keys for link clicks. For example, to
+	 *                                 force links to open in new windows, pass with
+	 *                                 .shiftKey = true. If not provided, the actual event will
+	 *                                 be used instead.
+	 */
+	updateHTMLInXUL: function (elem, options) {
+		options = options || {};
+		var links = elem.getElementsByTagName('a');
+		for (let i = 0; i < links.length; i++) {
+			let a = links[i];
+			let href = a.getAttribute('href');
+			a.setAttribute('tooltiptext', href);
+			a.onclick = function (event) {
+				try {
+					let wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+					   .getService(Components.interfaces.nsIWindowMediator);
+					let win = wm.getMostRecentWindow("navigator:browser");
+					win.ZoteroPane_Local.loadURI(href, options.linkEvent || event)
+				}
+				catch (e) {
+					Zotero.logError(e);
+				}
+				return false;
+			};
+		}
+	},
+	
+	
+	/**
+	 * A generator that yields promises that delay for the given intervals
+	 *
+	 * @param {Array<Integer>} intervals - An array of intervals in milliseconds
+	 * @param {Integer} [maxTime] - Total time to wait in milliseconds, after which the delaying
+	 *                              promise will return false. Before maxTime has elapsed, or if
+	 *                              maxTime isn't specified, the promises will yield true.
+	 */
+	"delayGenerator": function* (intervals, maxTime) {
+		var delay;
+		var totalTime = 0;
+		var last = false;
+		while (true) {
+			let interval = intervals.shift();
+			if (interval) {
+				delay = interval;
+			}
+			
+			if (maxTime && (totalTime + delay) > maxTime) {
+				yield Zotero.Promise.resolve(false);
+			}
+			
+			totalTime += delay;
+			
+			Zotero.debug("Delaying " + delay + " ms");
+			yield Zotero.Promise.delay(delay).return(true);
+		}
+	},
+	
+	
+	/**
+	 * Return an input stream that will be filled asynchronously with strings yielded from a
+	 * generator. If the generator yields a promise, the promise is waited for, but its value
+	 * is not added to the input stream.
+	 *
+	 * @param {GeneratorFunction|Generator} gen - Promise-returning generator function or
+	 *                                            generator
+	 * @return {nsIAsyncInputStream}
+	 */
+	getAsyncInputStream: function (gen, onError) {
+		// Initialize generator if necessary
+		var g = gen.next ? gen : gen();
+		var seq = 0;
+		
+		const PR_UINT32_MAX = Math.pow(2, 32) - 1;
+		var pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+		pipe.init(true, true, 0, PR_UINT32_MAX, null);
+		
+		var os = Components.classes["@mozilla.org/intl/converter-output-stream;1"]
+			.createInstance(Components.interfaces.nsIConverterOutputStream);
+		os.init(pipe.outputStream, 'utf-8', 0, 0x0000);
+		
+		
+		function onOutputStreamReady(aos) {
+			let currentSeq = seq++;
+			
+			var maybePromise = processNextValue();
+			// If generator returns a promise, wait for it
+			if (maybePromise.then) {
+				maybePromise.then(() => onOutputStreamReady(aos));
+			}
+			// If more data, tell stream we're ready
+			else if (maybePromise) {
+				aos.asyncWait({ onOutputStreamReady }, 0, 0, Zotero.mainThread);
+			}
+			// Otherwise close the stream
+			else {
+				aos.close();
+			}
+		};
+		
+		function processNextValue(lastVal) {
+			try {
+				var result = g.next(lastVal);
+				if (result.done) {
+					Zotero.debug("No more data to write");
+					return false;
+				}
+				if (result.value.then) {
+					return result.value.then(val => processNextValue(val));
+				}
+				if (typeof result.value != 'string') {
+					throw new Error("Data is not a string or promise (" + result.value + ")");
+				}
+				os.writeString(result.value);
+				return true;
+			}
+			catch (e) {
+				Zotero.logError(e);
+				if (onError) {
+					try {
+						os.writeString(onError(e));
+					}
+					catch (e) {
+						Zotero.logError(e);
+					}
+				}
+				os.close();
+				return false;
+			}
+		}
+		
+		pipe.outputStream.asyncWait({ onOutputStreamReady }, 0, 0, Zotero.mainThread);
+		return pipe.inputStream;
+	},
+	
+	
 	/**
 	 * Converts Zotero.Item to a format expected by translators
 	 * This is mostly the Zotero web API item JSON format, but with an attachments
@@ -383,41 +719,7 @@ Zotero.Utilities.Internal = {
 	 * @param {Boolean} legacy Add mappings for legacy (pre-4.0.27) translators
 	 * @return {Object}
 	 */
-	"itemToExportFormat": new function() {
-		return function(zoteroItem, legacy) {
-			var item = zoteroItem.toJSON();
-			item.uri = Zotero.URI.getItemURI(zoteroItem);
-			delete item.key;
-			
-			if (!zoteroItem.isAttachment() && !zoteroItem.isNote()) {
-				// Include attachments
-				item.attachments = [];
-				let attachments = zoteroItem.getAttachments();
-				for (let i=0; i<attachments.length; i++) {
-					let zoteroAttachment = Zotero.Items.get(attachments[i]),
-						attachment = zoteroAttachment.toJSON();
-					if (legacy) addCompatibilityMappings(attachment, zoteroAttachment);
-					
-					item.attachments.push(attachment);
-				}
-				
-				// Include notes
-				item.notes = [];
-				let notes = zoteroItem.getNotes();
-				for (let i=0; i<notes.length; i++) {
-					let zoteroNote = Zotero.Items.get(notes[i]),
-						note = zoteroNote.toJSON();
-					if (legacy) addCompatibilityMappings(note, zoteroNote);
-					
-					item.notes.push(note);
-				}
-			}
-			
-			if (legacy) addCompatibilityMappings(item, zoteroItem);
-			
-			return item;
-		}
-		
+	itemToExportFormat: function (zoteroItem, legacy, skipChildItems) {
 		function addCompatibilityMappings(item, zoteroItem) {
 			item.uniqueFields = {};
 			
@@ -461,7 +763,7 @@ Zotero.Utilities.Internal = {
 			
 			// Add various fields for compatibility with translators pre-4.0.27
 			item.itemID = zoteroItem.id;
-			item.libraryID = zoteroItem.libraryID;
+			item.libraryID = zoteroItem.libraryID == 1 ? null : zoteroItem.libraryID;
 			
 			// Creators
 			if (item.creators) {
@@ -508,7 +810,107 @@ Zotero.Utilities.Internal = {
 			
 			return item;
 		}
+		
+		var item = zoteroItem.toJSON();
+		
+		item.uri = Zotero.URI.getItemURI(zoteroItem);
+		delete item.key;
+		
+		if (!skipChildItems && !zoteroItem.isAttachment() && !zoteroItem.isNote()) {
+			// Include attachments
+			item.attachments = [];
+			let attachments = zoteroItem.getAttachments();
+			for (let i=0; i<attachments.length; i++) {
+				let zoteroAttachment = Zotero.Items.get(attachments[i]),
+					attachment = zoteroAttachment.toJSON();
+				if (legacy) addCompatibilityMappings(attachment, zoteroAttachment);
+				
+				item.attachments.push(attachment);
+			}
+			
+			// Include notes
+			item.notes = [];
+			let notes = zoteroItem.getNotes();
+			for (let i=0; i<notes.length; i++) {
+				let zoteroNote = Zotero.Items.get(notes[i]),
+					note = zoteroNote.toJSON();
+				if (legacy) addCompatibilityMappings(note, zoteroNote);
+				
+				item.notes.push(note);
+			}
+		}
+		
+		if (legacy) addCompatibilityMappings(item, zoteroItem);
+		
+		return item;
 	},
+	
+	
+	extractIdentifiers: function (text) {
+		var identifiers = [];
+		var foundIDs = new Set(); // keep track of identifiers to avoid duplicates
+		
+		// First look for DOIs
+		var ids = text.split(/[\s\u00A0]+/); // whitespace + non-breaking space
+		var doi;
+		for (let id of ids) {
+			if ((doi = Zotero.Utilities.cleanDOI(id)) && !foundIDs.has(doi)) {
+				identifiers.push({
+					DOI: doi
+				});
+				foundIDs.add(doi);
+			}
+		}
+		
+		// Then try ISBNs
+		if (!identifiers.length) {
+			// First try replacing dashes
+			let ids = text.replace(/[\u002D\u00AD\u2010-\u2015\u2212]+/g, "") // hyphens and dashes
+				.toUpperCase();
+			let ISBN_RE = /(?:\D|^)(97[89]\d{10}|\d{9}[\dX])(?!\d)/g;
+			let isbn;
+			while (isbn = ISBN_RE.exec(ids)) {
+				isbn = Zotero.Utilities.cleanISBN(isbn[1]);
+				if (isbn && !foundIDs.has(isbn)) {
+					identifiers.push({
+						ISBN: isbn
+					});
+					foundIDs.add(isbn);
+				}
+			}
+			
+			// Next try spaces
+			if (!identifiers.length) {
+				ids = ids.replace(/[ \u00A0]+/g, ""); // space + non-breaking space
+				while (isbn = ISBN_RE.exec(ids)) {
+					isbn = Zotero.Utilities.cleanISBN(isbn[1]);
+					if(isbn && !foundIDs.has(isbn)) {
+						identifiers.push({
+							ISBN: isbn
+						});
+						foundIDs.add(isbn);
+					}
+				}
+			}
+		}
+		
+		// Finally try for PMID
+		if (!identifiers.length) {
+			// PMID; right now, the longest PMIDs are 8 digits, so it doesn't seem like we'll
+			// need to discriminate for a fairly long time
+			let PMID_RE = /(?:\D|^)(\d{1,9})(?!\d)/g;
+			let pmid;
+			while ((pmid = PMID_RE.exec(text)) && !foundIDs.has(pmid)) {
+				identifiers.push({
+					PMID: pmid[1]
+				});
+				foundIDs.add(pmid);
+			}
+		}
+		
+		return identifiers;
+	},
+	
 	
 	/**
 	 * Hyphenate an ISBN based on the registrant table available from
@@ -582,6 +984,285 @@ Zotero.Utilities.Internal = {
 		parts.push(isbn.charAt(isbn.length-1)); // Check digit
 		
 		return parts.join('-');
+	},
+	
+	
+	buildLibraryMenu: function (menulist, libraries, selectedLibraryID) {
+		var menupopup = menulist.firstChild;
+		while (menupopup.hasChildNodes()) {
+			menupopup.removeChild(menupopup.firstChild);
+		}
+		var selectedIndex = 0;
+		var i = 0;
+		for (let library of libraries) {
+			let menuitem = menulist.ownerDocument.createElement('menuitem');
+			menuitem.value = library.libraryID;
+			menuitem.setAttribute('label', library.name);
+			menupopup.appendChild(menuitem);
+			if (library.libraryID == selectedLibraryID) {
+				selectedIndex = i;
+			}
+			i++;
+		}
+		
+		menulist.appendChild(menupopup);
+		menulist.selectedIndex = selectedIndex;
+	},
+	
+	
+	buildLibraryMenuHTML: function (select, libraries, selectedLibraryID) {
+		var namespaceURI = 'http://www.w3.org/1999/xhtml';
+		while (select.hasChildNodes()) {
+			select.removeChild(select.firstChild);
+		}
+		var selectedIndex = 0;
+		var i = 0;
+		for (let library of libraries) {
+			let option = select.ownerDocument.createElementNS(namespaceURI, 'option');
+			option.setAttribute('value', library.libraryID);
+			option.setAttribute('data-editable', library.editable ? 'true' : 'false');
+			option.setAttribute('data-filesEditable', library.filesEditable ? 'true' : 'false');
+			option.textContent = library.name;
+			select.appendChild(option);
+			if (library.libraryID == selectedLibraryID) {
+				option.setAttribute('selected', 'selected');
+			}
+			i++;
+		}
+	},
+	
+	
+	/**
+	 * Create a libraryOrCollection DOM tree to place in <menupopup> element.
+	 * If has no children, returns a <menuitem> element, otherwise <menu>.
+	 * 
+	 * @param {Library/Collection} libraryOrCollection
+	 * @param {Node<menupopup>} elem parent element
+	 * @param {function} clickAction function to execute on clicking the menuitem.
+	 * 		Receives the event and libraryOrCollection for given item.
+	 * 
+	 * @return {Node<menuitem>/Node<menu>} appended node
+	 */
+	createMenuForTarget: function(libraryOrCollection, elem, currentTarget, clickAction) {
+		var doc = elem.ownerDocument;
+		function _createMenuitem(label, value, icon, command) {
+			let menuitem = doc.createElement('menuitem');
+			menuitem.setAttribute("label", label);
+			menuitem.setAttribute("type", "checkbox");
+			if (value == currentTarget) {
+				menuitem.setAttribute("checked", "true");
+			}
+			menuitem.setAttribute("value", value);
+			menuitem.setAttribute("image", icon);
+			menuitem.addEventListener('command', command);
+			menuitem.classList.add('menuitem-iconic');
+			return menuitem
+		}	
+		
+		function _createMenu(label, value, icon, command) {
+			let menu = doc.createElement('menu');
+			menu.setAttribute("label", label);
+			menu.setAttribute("value", value);
+			menu.setAttribute("image", icon);
+			// Allow click on menu itself to select a target
+			menu.addEventListener('click', command);
+			menu.classList.add('menu-iconic');
+			let menupopup = doc.createElement('menupopup');
+			menu.appendChild(menupopup);
+			return menu;
+		}
+		
+		var imageSrc = libraryOrCollection.treeViewImage;
+		
+		// Create menuitem for library or collection itself, to be placed either directly in the
+		// containing menu or as the top item in a submenu
+		var menuitem = _createMenuitem(
+			libraryOrCollection.name, 
+			libraryOrCollection.treeViewID,
+			imageSrc,
+			function (event) {
+				clickAction(event, libraryOrCollection);
+			}
+		);
+		
+		var collections;
+		if (libraryOrCollection.objectType == 'collection') {
+			collections = Zotero.Collections.getByParent(libraryOrCollection.id);
+		} else {
+			collections = Zotero.Collections.getByLibrary(libraryOrCollection.id);
+		}
+		
+		// If no subcollections, place menuitem for target directly in containing men
+		if (collections.length == 0) {
+			elem.appendChild(menuitem);
+			return menuitem
+		}
+		
+		// Otherwise create a submenu for the target's subcollections
+		var menu = _createMenu(
+			libraryOrCollection.name,
+			libraryOrCollection.treeViewID,
+			imageSrc,
+			function (event) {
+				clickAction(event, libraryOrCollection);
+			}
+		);
+		var menupopup = menu.firstChild;
+		menupopup.appendChild(menuitem);
+		menupopup.appendChild(doc.createElement('menuseparator'));
+		for (let collection of collections) {
+			let collectionMenu = this.createMenuForTarget(
+				collection, elem, currentTarget, clickAction
+			);
+			menupopup.appendChild(collectionMenu);
+		}
+		elem.appendChild(menu);
+		return menu;
+	},
+	
+	
+	// TODO: Move somewhere better
+	getVirtualCollectionState: function (type) {
+		switch (type) {
+			case 'duplicates':
+				var prefKey = 'duplicateLibraries';
+				break;
+			
+			case 'unfiled':
+				var prefKey = 'unfiledLibraries';
+				break;
+			
+			default:
+				throw new Error("Invalid virtual collection type '" + type + "'");
+		}
+		var libraries;
+		try {
+			libraries = JSON.parse(Zotero.Prefs.get(prefKey) || '{}');
+			if (typeof libraries != 'object') {
+				throw true;
+			}
+		}
+		// Ignore old/incorrect formats
+		catch (e) {
+			Zotero.Prefs.clear(prefKey);
+			libraries = {};
+		}
+		
+		return libraries;
+	},
+	
+	
+	getVirtualCollectionStateForLibrary: function (libraryID, type) {
+		return this.getVirtualCollectionState(type)[libraryID] !== false;
+	},
+	
+	
+	setVirtualCollectionStateForLibrary: function (libraryID, type, show) {
+		switch (type) {
+			case 'duplicates':
+				var prefKey = 'duplicateLibraries';
+				break;
+			
+			case 'unfiled':
+				var prefKey = 'unfiledLibraries';
+				break;
+			
+			default:
+				throw new Error("Invalid virtual collection type '" + type + "'");
+		}
+		
+		var libraries = this.getVirtualCollectionState(type);
+		
+		// Update current library
+		libraries[libraryID] = !!show;
+		// Remove libraries that don't exist or that are set to true
+		for (let id of Object.keys(libraries).filter(id => libraries[id] || !Zotero.Libraries.exists(id))) {
+			delete libraries[id];
+		}
+		Zotero.Prefs.set(prefKey, JSON.stringify(libraries));
+	},
+	
+	
+	openPreferences: function (paneID, options = {}) {
+		if (typeof options == 'string') {
+			Zotero.debug("ZoteroPane.openPreferences() now takes an 'options' object -- update your code", 2);
+			options = {
+				action: options
+			};
+		}
+		
+		var io = {
+			pane: paneID,
+			tab: options.tab,
+			tabIndex: options.tabIndex,
+			action: options.action
+		};
+		
+		var win = null;
+		// If window is already open and no special action, just focus it
+		if (!options.action) {
+			var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+				.getService(Components.interfaces.nsIWindowMediator);
+			var enumerator = wm.getEnumerator("zotero:pref");
+			if (enumerator.hasMoreElements()) {
+				var win = enumerator.getNext();
+				win.focus();
+				if (paneID) {
+					var pane = win.document.getElementsByAttribute('id', paneID)[0];
+					pane.parentElement.showPane(pane);
+					
+					// TODO: tab/action
+				}
+			}
+		}
+		if (!win) {
+			let args = [
+				'chrome://zotero/content/preferences/preferences.xul',
+				'zotero-prefs',
+				'chrome,titlebar,toolbar,centerscreen,'
+					+ Zotero.Prefs.get('browser.preferences.instantApply', true) ? 'dialog=no' : 'modal',
+				io
+			];
+			
+			let win = Services.wm.getMostRecentWindow("navigator:browser");
+			if (win) {
+				win.openDialog(...args);
+			}
+			else {
+				// nsIWindowWatcher needs a wrappedJSObject
+				args[args.length - 1].wrappedJSObject = args[args.length - 1];
+				Services.ww.openWindow(null, ...args);
+			}
+		}
+		
+		return win;
+	},
+	
+	
+	filterStack: function (stack) {
+		return stack.split(/\n/)
+			.filter(line => !line.includes('resource://zotero/bluebird'))
+			.filter(line => !line.includes('XPCOMUtils.jsm'))
+			.join('\n');
+	},
+	
+	
+	quitZotero: function(restart=false) {
+		Zotero.debug("Zotero.Utilities.Internal.quitZotero() is deprecated -- use quit()");
+		this.quit(restart);
+	},
+	
+	
+	/**
+	 * Quits the program, optionally restarting.
+	 * @param {Boolean} [restart=false]
+	 */
+	quit: function(restart=false) {
+		var startup = Services.startup;
+		if (restart) {
+			Zotero.restarting = true;
+		}
+		startup.quit(startup.eAttemptQuit | (restart ? startup.eRestart : 0) );
 	}
 }
 

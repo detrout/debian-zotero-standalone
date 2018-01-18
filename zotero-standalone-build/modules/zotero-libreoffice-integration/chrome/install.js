@@ -74,6 +74,12 @@ function onLoad() {
 				if(success) wizard.advance();
 			}
 		});
+	} else {
+		checkMacJDK().then(function(success) {
+			if (!success) {
+				wizard.getPageById("intro").next = "jdk-required";
+			}
+		});
 	}
 }
 
@@ -114,6 +120,16 @@ function checkJavaCommon(callback) {
 		});
 	});
 }
+
+var checkMacJDK = Zotero.Promise.coroutine(function* () {
+	var success = false;
+	try {
+		success = yield Zotero.Utilities.Internal.exec('/bin/bash/', ['-c', '/usr/libexec/java_home | grep -e "jdk"']);
+	} catch (e) {
+		Zotero.logError(e);
+	}
+	return success;
+});
 
 function checkJavaCommonPkg(pkgMain, pkgRequired, callback) {
 	// check for openoffice.org-writer with openoffice.org-java-common available but not installed
@@ -160,18 +176,33 @@ function checkJRE() {
 	var isInstalled = false,
 		wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
 			.createInstance(Components.interfaces.nsIWindowsRegKey);
+			
 	try {
 		wrk.open(Components.interfaces.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
 			"Software\\JavaSoft\\Java Runtime Environment",
-			Components.interfaces.nsIWindowsRegKey.ACCESS_READ);
+			Components.interfaces.nsIWindowsRegKey.ACCESS_READ | Components.interfaces.nsIWindowsRegKey.WOW64_32);
+		isInstalled = isInstalled || !!wrk.readStringValue("CurrentVersion");
+	} catch (e) {
+		Zotero.debug("32-bit java not found. Checking 64-bit");
+	} finally {
+		wrk.close();
+	}
+	
+	if (!isInstalled) {
 		try {
-			isInstalled = !!wrk.readStringValue("CurrentVersion");
-		} finally {
+			wrk.open(Components.interfaces.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
+				"Software\\JavaSoft\\Java Runtime Environment",
+				Components.interfaces.nsIWindowsRegKey.ACCESS_READ | Components.interfaces.nsIWindowsRegKey.WOW64_64);
+			isInstalled = isInstalled || !!wrk.readStringValue("CurrentVersion");
+		} catch (e) {
+			Zotero.debug("64-bit java not found.");
+		}
+		 finally {
 			wrk.close();
 		}
-	} catch(e) {}
+	}
 	
-	if(isInstalled) {
+	if (isInstalled) {
 		wizard.getPageById("intro").next = "openoffice-installations";
 		
 		if(wizard.currentPage.pageid === "jre-required") {
@@ -291,17 +322,17 @@ function openofficeInstallationsPageShown() {
 }
 
 /**
- * Called to add an OpenOffice.org installation directory
+ * Called to add an LibreOffice installation directory
  */
 function openofficeInstallationsAddDirectory() {
 	var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(Components.interfaces.nsIFilePicker);
 	
 	// show dialog to select directory
 	if(Zotero.isMac) {
-		fp.init(window, "Select the OpenOffice.org application", Components.interfaces.nsIFilePicker.modeOpen);
+		fp.init(window, "Select the LibreOffice application", Components.interfaces.nsIFilePicker.modeOpen);
 		fp.appendFilter("Mac OS X Application Bundle", "*.app");
 	} else {
-		fp.init(window, "Select the OpenOffice.org installation directory", Components.interfaces.nsIFilePicker.modeGetFolder);
+		fp.init(window, "Select the LibreOffice installation directory", Components.interfaces.nsIFilePicker.modeGetFolder);
 	}
 	
 	if(fp.show() === Components.interfaces.nsIFilePicker.returnOK) {
@@ -320,7 +351,7 @@ function openofficeInstallationsAddDirectory() {
 			var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 					.getService(Components.interfaces.nsIPromptService);
 			promptService.alert(window, "unopkg Not Found", "The unopkg executable could not be "+
-				"found in the selected OpenOffice.org installation directory. Please ensure that "+
+				"found in the selected LibreOffice installation directory. Please ensure that "+
 				"you have selected the correct directory and try again.");
 		}
 		
@@ -343,7 +374,7 @@ function openofficeInstallationsAddDirectory() {
 }
 
 /**
- * Called to reveal OpenOffice.org extension for manual installation
+ * Called to reveal LibreOffice extension for manual installation
  */
 function openofficeInstallationsManualInstallation() {
 	// clear saved unopkg paths so we force manual install on upgrade
@@ -365,11 +396,11 @@ function openofficeInstallationsManualInstallation() {
 }
 
 /**
- * Called when an OpenOffice.org installation is checked or unchecked
+ * Called when an LibreOffice installation is checked or unchecked
  */
 function openofficeInstallationsListboxSelectionChanged() {
 	var listbox = document.getElementById("installations-listbox");
-	for each(var node in listbox.childNodes) {
+	for (let node of listbox.childNodes) {
 		if(node.checked) {
 			wizard.canAdvance = true;
 			return;
@@ -384,7 +415,7 @@ function openofficeInstallationsListboxSelectionChanged() {
  */
 function showInstallationComplete(vboxToShow) {
 	// show correct description
-	for each(var vbox in ["manual", "error", "successful"]) {
+	for (let vbox of ["manual", "error", "successful"]) {
 		var vboxElem = document.getElementById("installation-"+vbox);
 		vboxElem.hidden = vbox != vboxToShow;
 	}
@@ -414,7 +445,7 @@ function installingPageShown() {
 	
 	var listbox = document.getElementById("installations-listbox");
 	var paths = {};
-	for each(var node in listbox.childNodes) {
+	for (let node of listbox.childNodes) {
 		paths[node.label] = !!node.checked;
 	}
 	ZoteroOpenOfficeIntegration.installComponents(paths,
@@ -446,8 +477,8 @@ function wizardCancelled() {
 	if(wizard.currentPage.pageid != "installation-complete") {
 		var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 				.getService(Components.interfaces.nsIPromptService);
-		var cancel = promptService.confirm(window, "Zotero OpenOffice.org Integration", "Are you sure you want "+
-			"to cancel Zotero OpenOffice.org/NeoOffice/LibreOffice Integration installation? To "+
+		var cancel = promptService.confirm(window, "Zotero LibreOffice Integration", "Are you sure you want "+
+			"to cancel Zotero LibreOffice Integration installation? To "+
 			"install later, visit the Cite pane of the Zotero preferences.");
 		if(cancel) {
 			ZoteroPluginInstaller.cancelled();

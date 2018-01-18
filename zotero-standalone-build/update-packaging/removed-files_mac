@@ -22,6 +22,7 @@ Contents/MacOS/libssl3.dylib
 Contents/MacOS/libxpcom.dylib
 Contents/MacOS/LICENSE
 Contents/MacOS/omni.ja
+Contents/MacOS/pingsender
 Contents/MacOS/platform.ini
 Contents/MacOS/precomplete
 Contents/MacOS/README.xulrunner
@@ -31,6 +32,7 @@ Contents/MacOS/update-settings.ini
 Contents/MacOS/updater.app/Contents/MacOS/updater-bin
 Contents/MacOS/updates.xml
 Contents/MacOS/updates/*
+Contents/MacOS/zotero-bin
 Contents/Resources/translators.zip
 Contents/Resources/translators.index
 Contents/Resources/styles.zip

@@ -408,7 +408,7 @@
 		"title": "Title",
 		"url": "http://www.example.com",
 		"version": 0,
-		"versionNumber": "Version"
+		"versionNumber": "Version number"
 	},
 	"conferencePaper": {
 		"DOI": "10.1234/example.doi",

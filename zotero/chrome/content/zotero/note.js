@@ -26,10 +26,9 @@
 var noteEditor;
 var notifierUnregisterID;
 
-function onLoad() {
+async function onLoad() {
 	noteEditor = document.getElementById('zotero-note-editor');
 	noteEditor.mode = 'edit';
-	noteEditor.focus();
 	
 	// Set font size from pref
 	Zotero.setFontSize(noteEditor);
@@ -37,12 +36,13 @@ function onLoad() {
 	if (window.arguments) {
 		var io = window.arguments[0];
 	}
-	var itemID = io.itemID;
-	var collectionID = io.collectionID;
-	var parentItemID = io.parentItemID;
+	
+	var itemID = parseInt(io.itemID);
+	var collectionID = parseInt(io.collectionID);
+	var parentItemKey = io.parentItemKey;
 	
 	if (itemID) {
-		var ref = Zotero.Items.get(itemID);
+		var ref = await Zotero.Items.getAsync(itemID);
 		
 		var clearUndo = noteEditor.item ? noteEditor.item.id != ref.id : false;
 		
@@ -58,9 +58,9 @@ function onLoad() {
 		document.title = ref.getNoteTitle();
 	}
 	else {
-		if (parentItemID) {
-			var ref = Zotero.Items.get(parentItemID);
-			noteEditor.parent = ref;
+		if (parentItemKey) {
+			var ref = Zotero.Items.getByLibraryAndKey(parentItemKey);
+			noteEditor.parentItem = ref;
 		}
 		else {
 			if (collectionID && collectionID != '' && collectionID != 'undefined') {
@@ -70,25 +70,35 @@ function onLoad() {
 		noteEditor.refresh();
 	}
 	
-	notifierUnregisterID = Zotero.Notifier.registerObserver(NotifyCallback, 'item');
+	notifierUnregisterID = Zotero.Notifier.registerObserver(NotifyCallback, 'item', 'noteWindow');
 }
 
-function onUnload()
-{
-	if(noteEditor && noteEditor.value)
-		noteEditor.save();
-	
+// If there's an error saving a note, close the window and crash the app
+function onError() {
+	try {
+		window.opener.ZoteroPane.displayErrorMessage();
+	}
+	catch (e) {
+		Zotero.logError(e);
+	}
+	window.close();
+}
+
+
+function onUnload() {
 	Zotero.Notifier.unregisterObserver(notifierUnregisterID);
+	
+	if (noteEditor.item) {
+		window.opener.ZoteroPane.onNoteWindowClosed(noteEditor.item.id, noteEditor.value);
+	}
 }
 
 var NotifyCallback = {
 	notify: function(action, type, ids){
 		if (noteEditor.item && ids.indexOf(noteEditor.item.id) != -1) {
-			noteEditor.item = noteEditor.item;
-			
 			// If the document title hasn't yet been set, reset undo so
 			// undoing to empty isn't possible
-			var noteTitle = noteEditor.note.getNoteTitle();
+			var noteTitle = noteEditor.item.getNoteTitle();
 			if (!document.title && noteTitle != '') {
 				noteEditor.clearUndo();
 				document.title = noteTitle;

@@ -29,25 +29,9 @@ Description: organize and share your research sources
  This package contains the standalone version of Zotero which does not
  run within the Firefox browser (though it still uses its engine).
 
-Package: xul-ext-zotero
-Architecture: all
-Depends: ${misc:Depends}, ${xpi:Depends}
-Recommends: ${xpi:Recommends}
-Provides: ${xpi:Provides}
-Enhances: ${xpi:Enhances}
-Breaks: ${xpi:Breaks}
-Description: Firefox extension to organize and share your research sources
- Zotero helps you collect, manage, and cite your research sources.
- .
- Zotero allows you to store your libraries online, so that they can be
- accessed from any computer. Your online collections can also be shared with
- other Zotero users, letting you collaboratively create bibliographies and
- research notes. It can automatically gather bibliographic information about
- resources available in hundreds of databases, library catalogs and the web.
-
 Package: libreoffice-zotero-integration
 Architecture: all
-Depends: zotero-standalone | xul-ext-zotero, ${misc:Depends}, ${java:Depends}
+Depends: zotero-standalone, ${misc:Depends}, ${java:Depends}
 Recommends: libreoffice-writer
 Replaces: zotero-libreoffice-integration (<< 4.0.6-1)
 Breaks: zotero-libreoffice-integration (<< 4.0.6-1)

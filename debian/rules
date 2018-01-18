@@ -9,14 +9,9 @@ export CLASSPATH=/usr/share/java/jackson-core.jar:/usr/share/java/jackson-annota
 export JAVA_HOME=/usr/lib/jvm/default-java
 
 %:
-	dh $@ --with xul-ext,javahelper
+	dh $@ --with javahelper
 
 override_dh_auto_build:
-	# Create the XPI file
-	mkdir -p zotero-build/xpi/build/
-	cp -a zotero zotero-build/xpi/build/
-	./zotero-build/xpi/build_xpi_4.0 zotero
-
 	# Build the standalone package
 	./zotero-standalone-build/build.sh -p l -s -f $$(pwd)/zotero-build/xpi/build/zotero-build.xpi
 
@@ -27,7 +22,6 @@ override_jh_build:
 
 override_dh_auto_install:
 	rm -f zotero-standalone-build/staging/zotero-standalone/COPYING
-	install-xpi -p xul-ext-zotero -r zotero-build/xpi/build/zotero-build.xpi
 
 # We don't want to act on the jar in zotero-standalone (which is codeless)
 override_jh_manifest:
@@ -38,7 +32,6 @@ override_jh_depends:
 	jh_depends -plibreoffice-zotero-integration
 
 override_dh_auto_clean:
-	rm -rf zotero-build/xpi/build/
 	rm -rf zotero-standalone-build/staging zotero-standalone-build/dist
 	rm -f zotero-standalone-build/modules/zotero-libreoffice-integration/build/oxt/Zotero.jar
 

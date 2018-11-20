@@ -1,0 +1,11 @@
+--- a/zotero-standalone-build/scripts/dir_build
++++ b/zotero-standalone-build/scripts/dir_build
+@@ -65,7 +65,7 @@
+ 		PARAMS="-t"
+ 	fi
+ 	
+-	hash=`git -C "$ZOTERO_SOURCE_DIR" rev-parse --short HEAD`
++	hash=$Z_COMMIT
+ 	
+ 	"$ZOTERO_BUILD_DIR/xpi/build_xpi" -s "$ZOTERO_SOURCE_DIR/build" -c $CHANNEL -m $hash
+ 	"$ROOT_DIR/build.sh" -d "$ZOTERO_BUILD_DIR/xpi/build/staging" -p $PLATFORM -c $CHANNEL -s $PARAMS

@@ -7,13 +7,14 @@ Forwarded: not-needed
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/zotero-standalone-build/build.sh
 +++ b/zotero-standalone-build/build.sh
-@@ -448,29 +448,12 @@
+@@ -448,12 +448,11 @@
  
  # Linux
  if [ $BUILD_LINUX == 1 ]; then
 -	for arch in "i686" "x86_64"; do
 -		RUNTIME_PATH=`eval echo '$LINUX_'$arch'_RUNTIME_PATH'`
--		
++		RUNTIME_PATH=$CALLDIR/xulrunner/firefox
+ 		
  		# Set up directory
 -		echo 'Building Zotero_linux-'$arch
 -		APPDIR="$STAGE_DIR/Zotero_linux-$arch"
@@ -22,45 +23,26 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
  		rm -rf "$APPDIR"
  		mkdir "$APPDIR"
  		
--		# Merge relevant assets from Firefox
--		cp -r "$RUNTIME_PATH/"!(application.ini|browser|defaults|devtools-files|crashreporter|crashreporter.ini|firefox-bin|pingsender|precomplete|removed-files|run-mozilla.sh|update-settings.ini|updater|updater.ini) "$APPDIR"
--		
--		# Use our own launcher that calls the original Firefox executable with -app
+@@ -461,15 +460,15 @@
+ 		cp -r "$RUNTIME_PATH/"!(application.ini|browser|defaults|devtools-files|crashreporter|crashreporter.ini|firefox-bin|pingsender|precomplete|removed-files|run-mozilla.sh|update-settings.ini|updater|updater.ini) "$APPDIR"
+ 		
+ 		# Use our own launcher that calls the original Firefox executable with -app
 -		mv "$APPDIR"/firefox "$APPDIR"/zotero-bin
 -		cp "$CALLDIR/linux/zotero" "$APPDIR"/zotero
--		
--		# Copy Ubuntu launcher files
--		cp "$CALLDIR/linux/zotero.desktop" "$APPDIR"
--		cp "$CALLDIR/linux/set_launcher_icon" "$APPDIR"
--		
--		# Use our own updater, because Mozilla's requires updates signed by Mozilla
++		# mv "$APPDIR"/firefox "$APPDIR"/zotero-bin
++		# cp "$CALLDIR/linux/zotero" "$APPDIR"/zotero
+ 		
+ 		# Copy Ubuntu launcher files
+ 		cp "$CALLDIR/linux/zotero.desktop" "$APPDIR"
+ 		cp "$CALLDIR/linux/set_launcher_icon" "$APPDIR"
+ 		
+ 		# Use our own updater, because Mozilla's requires updates signed by Mozilla
 -		cp "$CALLDIR/linux/updater-$arch" "$APPDIR"/updater
--		
++		# cp "$CALLDIR/linux/updater-$arch" "$APPDIR"/updater
+ 		
  		cp -R "$BUILD_DIR/zotero/"* "$BUILD_DIR/application.ini" "$APPDIR"
  		
- 		# Modify platform-specific prefs
-@@ -487,20 +470,9 @@
- 			cp "$RUNTIME_PATH/devtools-files/components/interfaces.xpt" "$APPDIR/components/"
- 		fi
- 		
--		# Add word processor plug-ins
--		mkdir "$APPDIR/extensions"
--		cp -RH "$CALLDIR/modules/zotero-libreoffice-integration" "$APPDIR/extensions/zoteroOpenOfficeIntegration@zotero.org"
--		perl -pi -e 's/\.SOURCE<\/em:version>/.SA.'"$VERSION"'<\/em:version>/' "$APPDIR/extensions/zoteroOpenOfficeIntegration@zotero.org/install.rdf"
--		echo
--		echo -n "$ext Version: "
--		perl -ne 'print and last if s/.*<em:version>(.*)<\/em:version>.*/\1/;' "$APPDIR/extensions/zoteroOpenOfficeIntegration@zotero.org/install.rdf"
--		echo
--		rm -rf "$APPDIR/extensions/zoteroOpenOfficeIntegration@zotero.org/.git"
--		
- 		# Delete extraneous files
- 		find "$APPDIR" -depth -type d -name .git -exec rm -rf {} \;
- 		find "$APPDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
--		find "$APPDIR/extensions" -depth -type d -name build -exec rm -rf {} \;
- 		
- 		if [ $PACKAGE == 1 ]; then
- 			# Create tar
-@@ -508,7 +480,6 @@
+@@ -508,7 +507,6 @@
  			cd "$STAGE_DIR"
  			tar -cjf "$DIST_DIR/Zotero-${VERSION}_linux-$arch.tar.bz2" "Zotero_linux-$arch"
  		fi

@@ -1,0 +1,38 @@
+--- a/zotero-standalone-build/fetch_xulrunner.sh
++++ b/zotero-standalone-build/fetch_xulrunner.sh
+@@ -162,29 +162,15 @@
+ fi
+ 
+ if [ $BUILD_LINUX == 1 ]; then
+-	GECKO_VERSION="$GECKO_VERSION_LINUX"
+-	DOWNLOAD_URL="https://ftp.mozilla.org/pub/firefox/releases/$GECKO_VERSION"
+ 	rm -rf firefox
+ 	
+-	curl -O "$DOWNLOAD_URL/linux-i686/en-US/firefox-$GECKO_VERSION.tar.bz2"
+-	rm -rf firefox-i686
+-	tar xvf firefox-$GECKO_VERSION.tar.bz2
+-	mv firefox firefox-i686
+-	cd firefox-i686
++	mkdir -p firefox/browser
++	cd firefox
++	cp -r /usr/lib/firefox-esr/{browser,chrome*,fonts,omni.ja,platform.ini} .
+ 	modify_omni
+ 	extract_devtools
+ 	cd ..
+-	rm "firefox-$GECKO_VERSION.tar.bz2"
+-	
+-	curl -O "$DOWNLOAD_URL/linux-x86_64/en-US/firefox-$GECKO_VERSION.tar.bz2"
+-	rm -rf firefox-x86_64
+-	tar xvf firefox-$GECKO_VERSION.tar.bz2
+-	mv firefox firefox-x86_64
+-	cd firefox-x86_64
+-	modify_omni
+-	extract_devtools
+-	cd ..
+-	rm "firefox-$GECKO_VERSION.tar.bz2"
++        pwd
+ fi
+ 
+-echo Done
+\ No newline at end of file
++echo Done

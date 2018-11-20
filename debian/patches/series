@@ -4,3 +4,4 @@
 04_silent_install.diff
 05_remove_pdftools_installer_button.diff
 06_Max_Version.diff
+07_use_debian_firefox.patch

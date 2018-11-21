@@ -6,6 +6,14 @@ zotero-standalone-build (5.0.33+dfsg-1) unstable; urgency=medium
   * Refresh patches.
     - Remove messagebox.patch, appears to have been resolved upstream
   * zotero client now needs npm to build.
+  * Use firefox-esr instead of using network access to download firefox
+  * Use commit id from our rules and not from git
+  * Python deoptimizer throws a unicode error without setting the locale
+  * Set a home for npm to download packages to
+  * Update cleanup script with other built artifacts
+  * Encourage npm to use local packages, update build command
+  * Adjust directory name to better match upstream instructions
+  * List node components we are supposed to have installed.
 
  -- Diane Trout <diane@ghic.org>  Thu, 18 Jan 2018 09:36:41 -0800
 

@@ -37,8 +37,12 @@ override_jh_depends:
 	jh_depends -plibreoffice-zotero-integration
 
 override_dh_auto_clean:
-	rm -rf zotero-standalone-build/staging zotero-standalone-build/dist
+	rm -rf zotero-standalone-build/staging zotero-standalone-build/dist zotero-standalone-build/xulrunner
 	rm -f zotero-standalone-build/modules/zotero-libreoffice-integration/build/oxt/Zotero.jar
+	rm -rf zotero-client/build/
+	rm -rf zotero-build/xpi/build/staging/
+	# TODO in the official release there should be nothing in here.
+	rm -rf zotero-client/node_modules/ zotero-client/.signatures.json
 
 # Update the following variables for each new upstream release
 # 5.0.33 tag was on 2017 Dec 19

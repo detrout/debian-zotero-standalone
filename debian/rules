@@ -60,8 +60,8 @@ get-orig-source:
 	rm -rf zotero-standalone-build-$(DEB_VERSION_UPSTREAM)
 
 	# Zotero
-	git clone https://github.com/zotero/zotero.git zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero
-	cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero && \
+	git clone https://github.com/zotero/zotero.git zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero-client
+	cd zotero-standalone-build-$(DEB_VERSION_UPSTREAM)/zotero-client && \
 		git checkout $(Z_COMMIT) && \
 		git submodule update --init --recursive
 

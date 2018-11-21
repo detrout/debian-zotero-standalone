@@ -9,6 +9,8 @@ export CLASSPATH=/usr/share/java/jackson-core.jar:/usr/share/java/jackson-annota
 export JAVA_HOME=/usr/lib/jvm/default-java
 # python deoptimizer has a unicode decode error without this.
 export LC_ALL=C.UTF-8
+# npm likes to write /home
+export HOME=/tmp
 
 %:
 	dh $@ --with javahelper

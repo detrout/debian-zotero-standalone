@@ -47,7 +47,7 @@ override_dh_auto_clean:
 # Update the following variables for each new upstream release
 # 5.0.33 tag was on 2017 Dec 19
 COMMIT_VERSION=5.0.33+dfsg
-Z_COMMIT=22d3fbb
+export Z_COMMIT=22d3fbb
 ZB_COMMIT=b330e8e
 ZSB_COMMIT=9b0d0b3
 

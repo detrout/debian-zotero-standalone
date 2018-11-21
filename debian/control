@@ -34,6 +34,7 @@ Build-Depends: debhelper (>= 10), zip, unzip, mozilla-devscripts (>= 0.22),
 #              node-node-sass,
                node-sinon,
                node-universalify,
+               firefox-esr,
 Standards-Version: 3.9.8
 Homepage: http://www.zotero.org/
 Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/zotero-standalone-build.git

@@ -17,8 +17,8 @@ export HOME=/tmp
 
 override_dh_auto_build:
 	# Build the standalone package
-	cd ./zotero ; npm run build
-	./zotero-standalone-build/build.sh -p l -s -f $$(pwd)/zotero-build/xpi/build/zotero-build.xpi
+	cd ./zotero-client ; npm i --prefer-offline ; npm run build --prefer-offline
+	cd zotero-standalone-build ; ./fetch_xulrunner.sh -p l ; ./scripts/dir_build
 
 override_jh_build:
 	jh_build -N zotero-standalone-build/modules/zotero-libreoffice-integration/build/oxt/Zotero.jar zotero-standalone-build/modules/zotero-libreoffice-integration/build/source

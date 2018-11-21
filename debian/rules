@@ -7,6 +7,8 @@ include /usr/share/dpkg/pkg-info.mk
 
 export CLASSPATH=/usr/share/java/jackson-core.jar:/usr/share/java/jackson-annotations.jar:/usr/share/java/jackson-databind.jar:/usr/share/java/jna.jar:/usr/share/java/juh.jar:/usr/share/java/ridl.jar:/usr/share/java/unoil.jar
 export JAVA_HOME=/usr/lib/jvm/default-java
+# python deoptimizer has a unicode decode error without this.
+export LC_ALL=C.UTF-8
 
 %:
 	dh $@ --with javahelper
